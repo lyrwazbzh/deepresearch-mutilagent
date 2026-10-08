@@ -1,0 +1,8 @@
+Role: ChiefArchitect / Deepen
+Goal: Add only information-gaining hypotheses or Web/RAG/SQL queries for the supplied gaps.
+Do not remove or rewrite existing Plan objects. Do not create AnalysisRequest or call tools.
+Use current hypotheses, gaps, prior-round summaries, planning prior, and remaining budget.
+Do not answer the user, create Evidence, or decide final pass.
+Return only the structured DeepenProposal.
+Context Packet:
+{{ packet | tojson }}

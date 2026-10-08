@@ -1,0 +1,284 @@
+x-app-environment: &app-environment
+  DATABASE_URL: ${DATABASE_URL:?required}
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/1
+  MINIO_ENDPOINT: minio:9000
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?required}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?required}
+  ELASTICSEARCH_URL: http://elasticsearch:9200
+  SANDBOX_IMAGE: ${SANDBOX_IMAGE:?digest-pinned sandbox image required}
+  SANDBOX_RUNTIME: runsc
+  PHASE10_AUTH_ENABLED: "1"
+  AUTH_JWT_PRIVATE_KEY: ${AUTH_JWT_PRIVATE_KEY:?required}
+  CURSOR_SIGNING_KEY: ${CURSOR_SIGNING_KEY:?required}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_EMBEDDING_API_KEY: ${OPENAI_EMBEDDING_API_KEY:-}
+  TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+  JINA_API_KEY: ${JINA_API_KEY:-}
+  DEEPRESEARCH_MASTER_KEY_ID: ${DEEPRESEARCH_MASTER_KEY_ID:-}
+  DEEPRESEARCH_MASTER_KEY: ${DEEPRESEARCH_MASTER_KEY:-}
+  DEEPRESEARCH_MASTER_KEYS_JSON: ${DEEPRESEARCH_MASTER_KEYS_JSON:-}
+
+x-app-common: &app-common
+  image: ${BACKEND_CORE_IMAGE:?digest-pinned backend image required}
+  environment: *app-environment
+  networks: [internal]
+  restart: unless-stopped
+
+services:
+  nginx:
+    image: ${NGINX_IMAGE:?digest-pinned nginx-edge image required}
+    depends_on:
+      api: {condition: service_healthy}
+      frontend: {condition: service_started}
+    ports: ["80:80", "443:443"]
+    secrets: [tls_cert, tls_key]
+    networks: [edge, internal]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: {cpus: "1.0", memory: 256M}
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?digest-pinned frontend image required}
+    expose: ["8080"]
+    networks: [internal]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: {cpus: "1.0", memory: 256M}
+
+  api:
+    <<: *app-common
+    command: ["uvicorn", "src.api_view.web_main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+    expose: ["8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits: {cpus: "2.0", memory: 2G}
+
+  outbox-dispatcher:
+    <<: *app-common
+    command: ["python", "-m", "src.agent.workers.dispatcher_main"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-m", "src.agent.healthcheck", "dispatcher"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    deploy:
+      resources:
+        limits: {cpus: "1.0", memory: 1G}
+
+  worker-research:
+    <<: *app-common
+    command: ["celery", "-A", "src.agent.workers.celery_app:celery_app", "worker", "-Q", "research", "--concurrency=2", "--prefetch-multiplier=1"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "src.agent.healthcheck", "research"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    deploy:
+      resources:
+        limits: {cpus: "4.0", memory: 8G}
+
+  worker-ingestion:
+    image: ${INGESTION_IMAGE:?digest-pinned ingestion image required}
+    environment: *app-environment
+    command: ["celery", "-A", "src.agent.workers.celery_app:celery_app", "worker", "-Q", "ingestion", "--concurrency=2", "--prefetch-multiplier=1"]
+    networks: [internal]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+      elasticsearch: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-m", "src.agent.healthcheck", "ingestion"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    deploy:
+      resources:
+        limits: {cpus: "4.0", memory: 8G}
+
+  worker-export:
+    image: ${EXPORT_IMAGE:?digest-pinned export image required}
+    environment: *app-environment
+    command: ["celery", "-A", "src.agent.workers.celery_app:celery_app", "worker", "-Q", "export", "--concurrency=2", "--prefetch-multiplier=1"]
+    networks: [internal]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-m", "src.agent.healthcheck", "export"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    deploy:
+      resources:
+        limits: {cpus: "2.0", memory: 4G}
+
+  migration:
+    image: ${BACKEND_CORE_IMAGE:?digest-pinned backend image required}
+    environment: *app-environment
+    command: ["alembic", "upgrade", "head"]
+    profiles: ["migration"]
+    networks: [internal]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  postgres:
+    image: ${POSTGRES_IMAGE:?digest-pinned pgvector image required}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    expose: ["5432"]
+    networks: [internal]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits: {cpus: "4.0", memory: 8G}
+
+  redis:
+    image: ${REDIS_IMAGE:?digest-pinned Redis image required}
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    expose: ["6379"]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits: {cpus: "1.0", memory: 1G}
+
+  minio:
+    image: ${MINIO_IMAGE:?digest-pinned MinIO image required}
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?required}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?required}
+    expose: ["9000"]
+    networks: [internal]
+    volumes: ["minio-data:/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits: {cpus: "2.0", memory: 2G}
+
+  elasticsearch:
+    image: ${ELASTICSEARCH_IMAGE:?digest-pinned Elasticsearch+IK image required}
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    expose: ["9200"]
+    networks: [internal]
+    volumes: ["elasticsearch-data:/usr/share/elasticsearch/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits: {cpus: "4.0", memory: 4G}
+
+  neo4j:
+    image: ${NEO4J_IMAGE:?digest-pinned Neo4j image required}
+    profiles: ["task-kg"]
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:?required}
+    expose: ["7474", "7687"]
+    networks: [internal]
+    volumes: ["neo4j-data:/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_AUTH%%/*} -p $${NEO4J_AUTH#*/} 'RETURN 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits: {cpus: "2.0", memory: 4G}
+
+  model-server-chat:
+    image: ${PRIVATE_INFERENCE_IMAGE:?digest-pinned private inference image required}
+    profiles: ["private-inference"]
+    command: ["--model", "${CHAT_MODEL:-profile-not-enabled}", "--revision", "${CHAT_MODEL_REVISION:-profile-not-enabled}", "--dtype", "${CHAT_MODEL_DTYPE:-auto}", "--port", "8000"]
+    expose: ["8000"]
+    networks: [internal]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: {cpus: "8.0", memory: 32G}
+
+  model-server-embedding:
+    image: ${PRIVATE_INFERENCE_IMAGE:?digest-pinned private inference image required}
+    profiles: ["private-inference"]
+    command: ["--model", "${EMBEDDING_MODEL:-profile-not-enabled}", "--revision", "${EMBEDDING_MODEL_REVISION:-profile-not-enabled}", "--dtype", "${EMBEDDING_MODEL_DTYPE:-auto}", "--port", "8000"]
+    expose: ["8000"]
+    networks: [internal]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: {cpus: "4.0", memory: 16G}
+
+  model-server-rerank:
+    image: ${PRIVATE_INFERENCE_IMAGE:?digest-pinned private inference image required}
+    profiles: ["private-inference"]
+    command: ["--model", "${RERANK_MODEL:-profile-not-enabled}", "--revision", "${RERANK_MODEL_REVISION:-profile-not-enabled}", "--dtype", "${RERANK_MODEL_DTYPE:-auto}", "--port", "8000"]
+    expose: ["8000"]
+    networks: [internal]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: {cpus: "4.0", memory: 16G}
+
+networks:
+  edge: {}
+  internal: {internal: true}
+
+volumes:
+  postgres-data: {}
+  minio-data: {}
+  elasticsearch-data: {}
+  neo4j-data: {}
+
+secrets:
+  tls_cert: {external: true}
+  tls_key: {external: true}

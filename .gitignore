@@ -1,17 +1,71 @@
+# Python
 __pycache__/
 *.py[cod]
-.pytest_cache/
-pytest-temp/
-.ruff_cache/
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
 *.egg-info/
 .coverage
-htmlcov/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
 .env
-.venv/
-*.db
-frontend/node_modules/
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build outputs
 frontend/dist/
-frontend/coverage/
-frontend/playwright-report/
-frontend/test-results/
-frontend/*.tsbuildinfo
+
+# Langfuse (third-party)
+langfuse/
+
+# Cache
+.cache/
+*.cache
+USER_ACTION.md
+
+# AI 工具本地状态与产物（不入库）
+.workbuddy/
+.understand-anything/
+.claude/settings.local.json
+
+# 运行时日志
+.runlogs/
+
+# 运行时生成的图表产物（chart_generator 输出，不入库）
+backend/*.png
+backend/test/*.png
+
+# Training data and model artifacts
+training/data/raw/
+training/data/routing-*/
+training/outputs/
+training/reports/
+training/releases/*
+!training/releases/.gitkeep
+!training/data/README.md

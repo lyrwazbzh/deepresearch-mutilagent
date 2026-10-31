@@ -1,0 +1,14 @@
+[
+  {"id": "market_ev", "category": "market", "query": "研究中国新能源汽车市场规模、增速、细分结构与未来五年趋势"},
+  {"id": "policy_data", "category": "policy", "query": "研究中国数据跨境流动监管政策的演变、执行影响与企业应对"},
+  {"id": "technology_solid_battery", "category": "technology", "query": "研究固态电池关键技术路线、产业化瓶颈、专利格局与量产时间表"},
+  {"id": "competition_cloud", "category": "competition", "query": "研究中国企业级云服务市场竞争格局、主要厂商差异与份额变化"},
+  {"id": "supply_chain_chip", "category": "supply-chain", "query": "研究先进制程半导体供应链的关键环节、区域依赖与韧性风险"},
+  {"id": "international_robot", "category": "international-comparison", "query": "比较中国、日本、德国工业机器人产业的成本、技术、需求与政策环境"},
+  {"id": "investment_hydrogen", "category": "investment-risk", "query": "评估绿氢产业的投资机会、商业模式、成本曲线与主要下行风险"},
+  {"id": "company_strategy_ai", "category": "company-strategy", "query": "研究大型制造企业部署生成式AI的战略路径、组织能力与投资回报"},
+  {"id": "market_silver", "category": "market", "query": "研究中国银发经济的消费需求、重点赛道、市场空间与渠道变化"},
+  {"id": "policy_carbon", "category": "policy", "query": "研究欧盟碳边境调节机制对中国钢铁和铝出口企业的影响"},
+  {"id": "competition_coffee", "category": "competition", "query": "研究中国现制咖啡行业的价格竞争、门店效率、品牌定位与盈利能力"},
+  {"id": "company_globalization", "category": "company-strategy", "query": "研究中国消费电子企业进入东南亚市场的产品、渠道与本地化战略"}
+]

@@ -1,34 +1,66 @@
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
-import { useAuth } from "./auth/AuthProvider";
-import { AppShell } from "./components/layout/AppShell";
-import { LoginPage } from "./pages/LoginPage";
-import { HomePage } from "./pages/HomePage";
-import { HistoryPage } from "./pages/HistoryPage";
-import { WorkbenchPage } from "./pages/WorkbenchPage";
-import { DocumentsPage } from "./pages/DocumentsPage";
-import { DataSourcesPage } from "./pages/DataSourcesPage";
-import { ModelConfigsPage } from "./pages/ModelConfigsPage";
+/**
+ * Copyright © 2026 深圳市深维智见教育科技有限公司 版权所有
+ * 未经授权，禁止转售或仿制。
+ */
 
-function ProtectedLayout() {
-  const { ready, session } = useAuth();
-  if (!ready) return <div className="center-screen"><span className="spinner" />正在恢复会话…</div>;
-  if (!session) return <Navigate to="/login" replace />;
-  return <AppShell><Outlet /></AppShell>;
+import { Router } from '@/router'
+import { App as AntdApp, ConfigProvider, Spin } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
+import { useCallback, useRef, useState } from 'react'
+
+function App() {
+  return (
+    <ConfigProvider
+      theme={{
+        cssVar: true,
+        token: {
+          colorPrimary: '#2861E7',
+          borderRadius: 6
+        },
+      }}
+      locale={zhCN}
+    >
+      <AntdApp>
+        <Router />
+        <MountApi />
+      </AntdApp>
+    </ConfigProvider>
+  )
 }
 
-export function App() {
-  return <Routes>
-    <Route path="/login" element={<LoginPage />} />
-    <Route element={<ProtectedLayout />}>
-      <Route index element={<HomePage />} />
-      <Route path="history" element={<HistoryPage />} />
-      <Route path="workbench" element={<WorkbenchPage />} />
-      <Route path="threads/:threadId" element={<WorkbenchPage />} />
-      <Route path="threads/:threadId/tasks/:taskId" element={<WorkbenchPage />} />
-      <Route path="documents" element={<DocumentsPage />} />
-      <Route path="datasources" element={<DataSourcesPage />} />
-      <Route path="settings/models" element={<ModelConfigsPage />} />
-    </Route>
-    <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes>;
+function MountApi() {
+  window.$app = AntdApp.useApp()
+
+  const [loading, setLoading] = useState(false)
+  const [loadingText, setLoadingText] = useState('')
+  const loadingCount = useRef(0)
+  window.$showLoading = useCallback(({ title }: { title?: string } = {}) => {
+    loadingCount.current++
+    setLoading(true)
+    setLoadingText(title ?? '')
+  }, [])
+  window.$hideLoading = useCallback(() => {
+    loadingCount.current--
+    setTimeout(() => {
+      if (loadingCount.current <= 0) {
+        setLoading(false)
+        setLoadingText('')
+      }
+    }, 100)
+  }, [])
+
+  return (
+    <>
+      <Spin
+        spinning={loading}
+        tip={loadingText}
+        fullscreen
+        style={{
+          zIndex: 9999999,
+        }}
+      ></Spin>
+    </>
+  )
 }
+
+export default App

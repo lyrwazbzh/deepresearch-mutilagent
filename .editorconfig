@@ -1,0 +1,24 @@
+# https://editorconfig.org —— 仅建立约定；换行符统一不在此票执行（交由 prettier/ruff 逐步收敛）
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{ts,tsx,js,jsx,json,vue}]
+indent_style = space
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+# Markdown 行尾双空格是换行语义，不清理
+trim_trailing_whitespace = false

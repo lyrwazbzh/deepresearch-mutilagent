@@ -1,0 +1,53 @@
+name: frontend-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # .npmrc 已设 legacy-peer-deps=true（React 19 + AntD 5 peer 冲突，T29），npm ci 同样生效
+      - name: Install dependencies
+        run: npm ci
+
+      # ✅ 已启用（T42）：`npx eslint .` 存量 **87 problems（78 errors / 9 warnings）**已逐个收敛到
+      #    **0 problems** —— 不降级任何规则、不做批量压制；逐处修掉 `no-explicit-any` /
+      #    `no-unused-vars` / `no-empty-object-type` / `no-wrapper-object-types` /
+      #    `no-irregular-whitespace` / `react-hooks/exhaustive-deps`，仅 3 处逐行 `eslint-disable`（均注明理由）。
+      #    见 docs/hardening/tickets.md T42 / TRACKER「待办 / 未闭合项」P-12。
+      - name: Lint (eslint)
+        run: npm run lint
+
+      # ✅ 已启用（T58 / P-19）：把**真实**的类型检查接进 CI。根 tsconfig.json 是 solution
+      #    桩（files: [] + references），不跑 `-b` 时 `tsc` 编译空集、恒 0 错退出 —— 故门禁
+      #    必须显式指向 tsconfig.app.json（与 issue #182 的解除条件命令一致）。接入前前端
+      #    没有任何类型门禁，17 处存量错误长期漏网；本票已清零（17 → 0）后接入。
+      - name: Typecheck (tsc)
+        run: npm run typecheck
+
+      # ✅ 已启用（T43）：原记录的「OutlineApprovalPanel 集成用例时序抖动」经复现定位为
+      #    **负载下的假超时** —— 这几条 jsdom 重交互用例（外加 deep-research-integration 的
+      #    两条）单条实测就要 2.6–2.9s，距默认 5000ms 超时只剩 1.7 倍余量，CPU 争用时会越过。
+      #    复现方式：并行跑 6 份 `npx vitest run`，稳定出现 3–4 例 `Test timed out in 5000ms`。
+      #    修法：在 `frontend/vitest.config.ts` 把 testTimeout 放宽到 20000ms（断言与墙钟无关，
+      #    唯一涉及计时的用例走 fake timers，故这不是放宽断言）。同样的 6 份并发压力下现为 6/6 全绿。
+      - name: Test (vitest)
+        run: npm run test
+
+      - name: Build (vite)
+        run: npm run build

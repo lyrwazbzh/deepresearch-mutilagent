@@ -1,0 +1,8 @@
+# 最小规则集起步（tickets.md T26）：只抓语法错误与未定义名，确保 ruff check 一次通过。
+# 后续按批次逐步放开规则集；不引入 black（ruff 已覆盖格式化）。
+line-length = 100
+target-version = "py310"
+
+[lint]
+select = ["E9", "F63", "F7", "F82"]
+# E9: 语法错误；F63: 无效比较；F7: 语法层面的语句位置错误；F82: 未定义名

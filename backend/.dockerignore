@@ -1,0 +1,13 @@
+# 构建上下文：backend/。密钥与无关产物不得进入镜像（票面 T30）
+.env
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+tests/
+docs/
+*.png
+.venv/
+htmlcov/
+.coverage

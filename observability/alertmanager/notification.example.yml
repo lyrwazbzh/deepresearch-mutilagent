@@ -1,0 +1,15 @@
+# Copy the desired receiver into alertmanager.yml and keep real credentials out of Git.
+receivers:
+  - name: email
+    email_configs:
+      - to: alerts@example.com
+        from: monitoring@example.com
+        smarthost: smtp.example.com:587
+        auth_username: monitoring@example.com
+        auth_password: replace-with-smtp-app-password
+        send_resolved: true
+  - name: enterprise-wechat-webhook
+    webhook_configs:
+      - url: https://replace-with-your-webhook-bridge.example.com/alertmanager
+        send_resolved: true
+

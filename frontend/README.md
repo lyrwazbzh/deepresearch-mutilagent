@@ -1,30 +1,54 @@
-# DeepResearch Workbench
+# 行业信息助手 - 前端
 
-Phase 11 is a client-rendered React + strict TypeScript application. It uses React Router for URL
-identity, TanStack Query as the only server-state cache, one fetch-based HTTP client, and a
-separate authenticated fetch-stream SSE lifecycle. Access tokens remain in memory; refresh
-credentials remain in the backend-issued HttpOnly cookie.
+## 快速开始
 
-## Development
+### 环境要求
+- Node.js >= 18
+- npm >= 9
 
-```powershell
-pnpm install
-pnpm dev
+### 安装与运行
+
+```bash
+# 1. 安装依赖
+npm install --legacy-peer-deps
+
+# 2. 启动开发服务器
+npm run dev
 ```
 
-The default development server is `http://localhost:5173` and proxies `/api` to
-`http://127.0.0.1:8000`. Set `VITE_API_BASE_URL` only when testing cross-origin deployment.
+启动成功后访问 http://localhost:5173/
 
-## Verification
+### 常见问题
 
-```powershell
-pnpm quality
-pnpm e2e
+#### macOS/Linux 权限问题
+
+如果遇到 `Permission denied` 错误，运行：
+
+```bash
+chmod +x node_modules/.bin/*
 ```
 
-Real browser acceptance requires `E2E_EMAIL`, `E2E_PASSWORD`, and `E2E_TENANT_ID`. The complete
-resource test also accepts `E2E_FIXTURE_TASK_ID` and `E2E_FIXTURE_THREAD_ID`; prepare those values
-with `src/test/fixtures/browser_fixture.py` against a dedicated local acceptance identity. The
-fixture reuses the configured PostgreSQL, MinIO and Neo4j stores and is not production logic.
-Pending-write refresh acceptance additionally uses `E2E_PENDING_TASK_ID` and
-`E2E_PENDING_THREAD_ID`; pass its Task to the same fixture with `--pending-task-id`.
+然后重新执行 `npm run dev`
+
+#### Windows 用户
+
+如遇权限问题，请以管理员身份运行终端。
+
+---
+
+## 技术栈
+
+- React 19
+- TypeScript
+- Vite
+- Ant Design 5
+- React Router 6
+
+## 可用命令
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动开发服务器 |
+| `npm run build` | 构建生产版本 |
+| `npm run preview` | 预览生产版本 |
+| `npm run lint` | 运行代码检查 |

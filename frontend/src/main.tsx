@@ -1,27 +1,13 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
-import { AuthProvider } from "./auth/AuthProvider";
-import { App } from "./App";
-import "./styles.css";
+/**
+ * Copyright © 2026 深圳市深维智见教育科技有限公司 版权所有
+ * 未经授权，禁止转售或仿制。
+ */
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 10_000, retry: 1, refetchOnWindowFocus: false },
-    mutations: { retry: false },
-  },
-});
+import '@ant-design/v5-patch-for-react-19'
+import 'normalize.css'
+import { createRoot } from 'react-dom/client'
+import './antd.scss'
+import App from './App.tsx'
+import './index.css'
 
-const root = document.getElementById("root");
-if (!root) throw new Error("Missing #root application mount point.");
-
-createRoot(root).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider><App /></AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-  </StrictMode>,
-);
+createRoot(document.getElementById('root')!).render(<App />)

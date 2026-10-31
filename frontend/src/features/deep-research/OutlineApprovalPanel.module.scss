@@ -1,0 +1,237 @@
+.workspace {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f6f8fb;
+}
+
+.header {
+  flex: none;
+  padding: 28px 32px 22px;
+  border-bottom: 1px solid #e8ecf2;
+  background: #fff;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: #3975e9;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.title {
+  margin: 0 !important;
+  color: #162033 !important;
+  font-size: 28px !important;
+  line-height: 1.25 !important;
+}
+
+.description {
+  max-width: 720px;
+  margin: 10px 0 0 !important;
+  color: #687386;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.scrollArea {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.content {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+  box-sizing: border-box;
+}
+
+.alert {
+  margin-bottom: 20px;
+}
+
+.editorSection + .editorSection {
+  margin-top: 36px;
+}
+
+.sectionHeading {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+
+  h4 {
+    margin: 0 0 4px !important;
+    color: #202b3d !important;
+    font-size: 19px !important;
+  }
+}
+
+.count {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e9f1ff;
+  color: #2f6fde;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.chapterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.chapterCard {
+  min-width: 0;
+  border-color: #e2e7ef;
+  box-shadow: 0 2px 8px rgba(31, 45, 68, 0.04);
+
+  :global(.ant-card-head) {
+    min-height: 42px;
+    border-bottom-color: #edf0f5;
+    background: #fbfcfe;
+  }
+
+  :global(.ant-card-head-title) {
+    color: #273247;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+.cardFields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metaRow,
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.typeSelect {
+  min-width: 124px;
+}
+
+.actionRow {
+  button {
+    min-height: 36px;
+  }
+}
+
+.addButton {
+  min-height: 40px;
+  margin-top: 16px;
+  border-style: dashed;
+}
+
+.validation {
+  display: block;
+  margin-top: 8px;
+}
+
+.questionList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.questionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid #e2e7ef;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.questionField {
+  min-width: 0;
+}
+
+.questionNumber {
+  display: block;
+  margin-bottom: 8px;
+  color: #526076;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.footer {
+  flex: none;
+  padding: 15px 32px;
+  border-top: 1px solid #e2e7ef;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -8px 24px rgba(25, 40, 65, 0.05);
+}
+
+.footerInner {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.approveButton {
+  min-width: 260px;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .chapterGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .header {
+    padding: 22px 20px 18px;
+  }
+
+  .title {
+    font-size: 24px !important;
+  }
+
+  .content {
+    padding: 20px 16px 36px;
+  }
+
+  .questionRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .footer {
+    padding: 12px 16px;
+  }
+
+  .footerInner {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .approveButton {
+    width: 100%;
+    min-width: 0;
+  }
+}

@@ -1,0 +1,214 @@
+version: '3.8'
+name: deepresearch-mutilagent
+
+services:
+  # ==================== PostgreSQL 数据库 ====================
+  postgres:
+    image: postgres:15-alpine
+    container_name: deepresearch_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      # 口令不再明文入库：由仓库根目录的 .env 注入（模板见 .env.example）。
+      # 未配置时 compose 会以空值启动，Postgres 将直接拒绝初始化 —— 这是有意的「响亮失败」。
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: industry_assistant
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - industry_network
+
+  # ==================== Redis 缓存 ====================
+  redis:
+    image: redis:7-alpine
+    container_name: deepresearch_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - industry_network
+
+  # ==================== Milvus 向量数据库 ====================
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: deepresearch_etcd
+    restart: unless-stopped
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - industry_network
+
+  minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: deepresearch_minio
+    restart: unless-stopped
+    environment:
+      # 由仓库根目录 .env 注入（模板见 .env.example）。
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - industry_network
+
+  milvus:
+    image: milvusdb/milvus:v2.3.3
+    container_name: deepresearch_milvus
+    restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      # Milvus 要凭据才能读写 MinIO。这里必须与上面 minio 服务的 root 用户/口令**保持一致**，
+      # 否则一旦轮换口令，Milvus 会因为用的是内置默认口令而连不上 MinIO（向量库静默不可写）。
+      MINIO_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      MINIO_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - etcd
+      - minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      # Milvus standalone 启动期（内部 etcd/minio 依赖 + 组件自检）常需 1–2 分钟，
+      # 期间 /healthz 返回 500 或超时。没有 start_period 会在 ~90s 内耗光 3 次重试被判 unhealthy，
+      # 进而使 backend 的 depends_on: service_healthy 直接失败（T30 验收 3 实跑暴露）
+      start_period: 120s
+    networks:
+      - industry_network
+
+  # ==================== Elasticsearch (可选，用于全文检索) ====================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    container_name: deepresearch_elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "1200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - industry_network
+
+  # ==================== 后端应用（T30）====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: deepresearch_backend
+    restart: unless-stopped
+    # 密钥经 env_file 注入，不得写进本文件（票面约束）；backend/.env 已 gitignore
+    env_file:
+      - ./backend/.env
+    # P-13：env_file 把宿主机导向的 backend/.env **原样**注入容器，于是容器内的
+    # POSTGRES_HOST/REDIS_HOST/MILVUS_HOST 仍是 localhost —— 在容器里那是容器自身，
+    # 而非 compose 服务名，连接必被拒（psycopg2: connection to server at "localhost",
+    # port 5432 failed: Connection refused）。
+    # 这里只覆盖**非密钥的连接目标**；所有密钥（POSTGRES_PASSWORD / JWT_SECRET_KEY /
+    # MILVUS/MINIO 凭据等）仍全部走上面的 env_file，不落进本文件。
+    # compose 的取值优先级为 environment > env_file，故以下三项稳定胜出。
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      MILVUS_HOST: milvus
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      TOOL_ROUTER_BASE_URL: http://tool-router:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - industry_network
+
+  # QLoRA 工具路由服务需要已通过评测门禁的 Adapter 与 NVIDIA GPU。
+  # 默认不启动；执行 `docker compose --profile tool-router up -d tool-router` 显式启用。
+  tool-router:
+    profiles: ["tool-router"]
+    build:
+      context: ./training
+      dockerfile: Dockerfile.serve
+    container_name: deepresearch_tool_router
+    restart: unless-stopped
+    env_file:
+      - ./training/.env
+    environment:
+      TOOL_ROUTER_ADAPTER: /app/releases/current/adapter
+      TOOL_ROUTER_MANIFEST: /app/releases/current/release-manifest.json
+      TOOL_ROUTER_SCHEMA: /app/releases/current/deepresearch_tools.v1.json
+    volumes:
+      - ./training/releases/current:/app/releases/current:ro
+    ports:
+      - "8080:8080"
+    gpus: all
+    networks:
+      - industry_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  etcd_data:
+  minio_data:
+  milvus_data:
+  es_data:
+
+networks:
+  industry_network:
+    driver: bridge

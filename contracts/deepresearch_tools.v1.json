@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deepresearch.local/contracts/deepresearch_tools.v1.json",
+  "title": "DeepResearch tool routing contract",
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "name": "web_search",
+      "stage": "research",
+      "description": "Search public web sources for current or external information.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string", "minLength": 1},
+          "count": {"type": "integer", "minimum": 1, "maximum": 20, "default": 10}
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "local_rag",
+      "stage": "research",
+      "description": "Retrieve evidence from a user-owned local knowledge base.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string", "minLength": 1},
+          "kb_name": {"type": "string", "minLength": 1},
+          "top_k": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10}
+        },
+        "required": ["query", "kb_name"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "text2sql",
+      "stage": "research",
+      "description": "Query a preconfigured read-only database using a natural-language request.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "question": {"type": "string", "minLength": 1},
+          "intent": {"type": "string", "enum": ["stats", "trend", "comparison", "detail"]},
+          "database_profile_id": {"type": "string", "minLength": 1}
+        },
+        "required": ["question", "intent", "database_profile_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "data_analysis",
+      "stage": "analysis",
+      "description": "Run structured statistical or comparative analysis over collected evidence.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "analysis_type": {"type": "string", "enum": ["auto", "trend", "distribution", "comparison"]},
+          "goal": {"type": "string", "minLength": 1}
+        },
+        "required": ["analysis_type", "goal"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "chart_generation",
+      "stage": "analysis",
+      "description": "Generate a chart specification from analyzed data.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "chart_type": {"type": "string", "enum": ["line", "bar", "pie", "scatter", "auto"]},
+          "title": {"type": "string", "minLength": 1}
+        },
+        "required": ["chart_type", "title"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

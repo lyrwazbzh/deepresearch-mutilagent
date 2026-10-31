@@ -1,0 +1,124 @@
+groups:
+  - name: deep-research-application
+    rules:
+      - alert: ResearchApiTargetDown
+        expr: up{job="research-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Research API metrics target is down
+          description: Prometheus has not scraped the research API for two minutes.
+
+      - alert: ResearchApiHighErrorRate
+        expr: |
+          sum(rate(industry_http_requests_total{status=~"5.."}[5m]))
+          / clamp_min(sum(rate(industry_http_requests_total[5m])), 0.001) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Research API 5xx rate exceeds 5%
+          description: Inspect request_id and trace_id in Kibana and Langfuse.
+
+      - alert: ResearchApiP95LatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(industry_http_request_duration_seconds_bucket[10m]))
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Research API P95 latency exceeds 30 seconds
+          description: Check phase, LLM, retrieval, and tool latency panels.
+
+      - alert: LlmP95LatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, model) (rate(industry_llm_request_duration_seconds_bucket[10m]))
+          ) > 60
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM P95 latency exceeds 60 seconds
+          description: Model {{ $labels.model }} is responding slowly.
+
+      - alert: ToolFailureRateHigh
+        expr: |
+          sum(rate(industry_tool_calls_total{outcome="failure"}[10m]))
+          / clamp_min(sum(rate(industry_tool_calls_total[10m])), 0.001) > 0.20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Research tool failure rate exceeds 20%
+          description: Inspect tool.failed events in the research timeline.
+
+      - alert: ResearchRunFailed
+        expr: increase(industry_research_runs_total{outcome="failed"}[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: A deep-research run failed
+          description: Open the session diagnostics timeline and follow its trace_id.
+
+      - alert: ResearchQueueBacklog
+        expr: industry_research_queue_depth > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Deep-research queue is accumulating
+          description: More than five research jobs have waited for ten minutes.
+
+      - alert: DependencyCircuitOpen
+        expr: increase(industry_resilience_circuit_rejections_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: A dependency circuit is rejecting calls
+          description: Inspect component/provider labels and the correlated trace_id.
+
+      - alert: DeadLetterTasksCreated
+        expr: increase(industry_resilience_dlq_total[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: External calls entered the dead-letter queue
+          description: Inspect the authenticated reliability/dead-letters endpoint.
+
+      - alert: ToolRouterFallbackRateHigh
+        expr: |
+          sum(rate(industry_tool_router_decisions_total{path="adapter",outcome="fallback"}[10m]))
+          / clamp_min(sum(rate(industry_tool_router_decisions_total{path="adapter"}[10m])), 0.001) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Learned tool router fallback rate exceeds 10%
+          description: Check adapter health, latency, confidence, and schema-validation errors.
+
+  - name: deep-research-infrastructure
+    rules:
+      - alert: PostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: PostgreSQL monitoring target is down
+          description: Check postgres-exporter and industry_postgres containers.
+
+      - alert: RedisExporterDown
+        expr: up{job="redis"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Redis monitoring target is down
+          description: Check redis-exporter and industry_redis containers.

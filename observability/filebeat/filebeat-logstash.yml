@@ -1,0 +1,24 @@
+filebeat.inputs:
+  - type: filestream
+    id: industry-research-json-logs-logstash
+    enabled: true
+    paths:
+      - /logs/*.jsonl
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+          overwrite_keys: true
+
+processors:
+  - add_fields:
+      target: ""
+      fields:
+        application: industry-information-assistant
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+logging.json: true
+logging.level: info
+

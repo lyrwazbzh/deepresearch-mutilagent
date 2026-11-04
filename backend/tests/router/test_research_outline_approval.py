@@ -11,24 +11,6 @@ from pydantic import ValidationError
 
 
 def _install_router_dependency_stubs():
-    service_package = sys.modules["service"]
-
-    class DummyResearchService:
-        def __init__(self, **_kwargs):
-            pass
-
-    class DummyServiceConfig:
-        @staticmethod
-        def get_api_config():
-            return {}
-
-    service_package.ResearchService = DummyResearchService
-    service_package.ServiceConfig = DummyServiceConfig
-
-    dr_g = types.ModuleType("service.dr_g")
-    dr_g.serialize_event = lambda event: json.dumps(event, ensure_ascii=False)
-    sys.modules["service.dr_g"] = dr_g
-
     redis_client = types.ModuleType("core.redis_client")
     redis_client.cache = SimpleNamespace(
         set=lambda *_args, **_kwargs: None,
@@ -37,9 +19,9 @@ def _install_router_dependency_stubs():
     )
     sys.modules["core.redis_client"] = redis_client
 
-    v2_service = types.ModuleType("service.deep_research_v2.service")
-    v2_service.DeepResearchV2Service = object
-    sys.modules["service.deep_research_v2.service"] = v2_service
+    v2_service = types.ModuleType("service.deep_research.service")
+    v2_service.DeepResearchService = object
+    sys.modules["service.deep_research.service"] = v2_service
 
     auth_router = types.ModuleType("router.auth_router")
 
@@ -94,32 +76,28 @@ def test_stream_requires_authentication(research_router):
     with TestClient(app) as client:
         response = client.post(
             "/research/stream",
-            json={"query": "industry research", "version": "v2"},
+            json={"query": "industry research"},
         )
 
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_stream_passes_current_user_id_to_v2(research_router, monkeypatch):
+async def test_stream_passes_current_user_id(research_router, monkeypatch):
     research_calls = []
 
-    class FakeV2Service:
+    class FakeResearchService:
         async def research(self, **kwargs):
             research_calls.append(kwargs)
             yield 'data: {"type":"outline_ready"}\n\n'
 
     monkeypatch.setattr(
         research_router,
-        "get_research_service_v2",
-        lambda: FakeV2Service(),
+        "get_research_service",
+        lambda: FakeResearchService(),
     )
     response = await research_router.stream_research(
-        # 一律用关键字：T64 把 `current_user` 挪到了 `services` **之前**（见
-        # `test_router_auth.py::test_auth_is_the_first_dependency_resolved`），
-        # 位置参数会随签名顺序变动而静默错位。关键字参数与顺序解耦。
-        request=research_router.ResearchRequest(query="industry research", version="v2"),
-        services={"research_service": object()},
+        request=research_router.ResearchRequest(query="industry research"),
         current_user=_user(),
     )
     _ = [chunk async for chunk in response.body_iterator]
@@ -157,7 +135,7 @@ async def test_approve_outline_returns_resumed_sse_for_owner(
             approved_calls.append(kwargs)
             return {"query": "产业研究", "phase": "planning"}
 
-    class FakeV2Service:
+    class FakeResearchService:
         async def research(self, **kwargs):
             research_calls.append(kwargs)
             yield "data: {\"type\":\"phase\",\"phase\":\"planning\"}\n\n"
@@ -169,8 +147,8 @@ async def test_approve_outline_returns_resumed_sse_for_owner(
     )
     monkeypatch.setattr(
         research_router,
-        "get_research_service_v2",
-        lambda: FakeV2Service(),
+        "get_research_service",
+        lambda: FakeResearchService(),
     )
     request = _approval_request(research_router)
     user = _user()
@@ -231,7 +209,7 @@ async def test_approve_maps_missing_or_foreign_checkpoint_to_identical_404(
 
     service_created = False
 
-    def create_v2_service():
+    def create_research_service():
         nonlocal service_created
         service_created = True
         return object()
@@ -243,8 +221,8 @@ async def test_approve_maps_missing_or_foreign_checkpoint_to_identical_404(
     )
     monkeypatch.setattr(
         research_router,
-        "get_research_service_v2",
-        create_v2_service,
+        "get_research_service",
+        create_research_service,
     )
 
     with pytest.raises(research_router.HTTPException) as caught:

@@ -9,7 +9,7 @@
 - Python 契约：`backend/app/contracts/tool_routing.py`。
 - 工具：`web_search`、`local_rag`、`text2sql`、`data_analysis`、`chart_generation`。
 - 研究终止和 Critic 返工不属于模型工具，由 AsyncIO 状态机控制。
-- `deep_research_v2/graph.py` 以 `_run_state_machine` 作为唯一 V2 执行入口。
+- `deep_research/graph.py` 以 `_run_state_machine` 作为唯一 V2 执行入口。
 
 ## 2. 合成数据与质量流水线
 

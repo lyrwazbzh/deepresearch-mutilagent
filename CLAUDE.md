@@ -6,7 +6,7 @@ training and serving pipeline. Start with [README.md](README.md) and
 
 ## Main components
 
-- `backend/app/service/deep_research_v2/`: six-agent AsyncIO research state machine.
+- `backend/app/service/deep_research/`: six-agent AsyncIO research state machine.
 - `backend/app/service/retrieval/`: Milvus + Elasticsearch/BM25 hybrid retrieval.
 - `backend/app/service/tool_routing/`: versioned router client, gray rollout and rule fallback.
 - `backend/app/service/resilience/`: retry, circuit breaker, timeout, idempotency and DLQ.

@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 深度侦探 Agent (DeepScout)
+DeepResearch - 深度侦探 Agent (DeepScout)
 
 职责：
 1. 全网穿透搜索 - 不只是看摘要，深入阅读原文

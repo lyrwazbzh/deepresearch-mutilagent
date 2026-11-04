@@ -1,28 +1,24 @@
 # 架构总览
 
 > 目标读者：接手者。读完应能定位「改哪个功能要动哪个目录」。不写历史沿革与设计动机。
-> V2 是默认研究主链；V1 ReAct 仅用于显式兼容请求，不参与 V2 内部编排。
+> 研究主链唯一入口：`deep_research/`（AsyncIO 六专家状态机）。
 
-## 1. 两条研究路线（均由 `POST /research/stream` 进入，`version` 字段选择）
+## 1. 研究主链（`POST /research/stream`）
 
-| 路线 | 代码位置 | 触发 | 状态管理 | 现状 |
-|------|----------|------|----------|------|
-| **V2 多智能体**（默认） | `backend/app/service/deep_research_v2/` | `version=v2` | `ResearchState`（dataclass，`state.py`） | 日常主路径 |
-| **V1 ReAct** | `service/dr_g.py` + `react_controller.py` + `tool_executor.py` | `version=v1` | ReAct 循环内的消息列表 | **有意保留（NG-3）**，日常主路径不可达但不是死代码 |
+| 项 | 说明 |
+|------|----------|
+| 代码 | `backend/app/service/deep_research/` |
+| 状态 | `ResearchState`（TypedDict，`state.py`） |
+| SSE | `core/serialization.py` → `research_router` |
 
-两条路线的 SSE 事件均由 `core/serialization.py:serialize_event` 序列化后经 `research_router` 推给前端。
+## 2. 内部流程
 
-## 2. V2 内部流程
+**六类 agent**（`service/deep_research/agents/`，均继承 `BaseAgent`）按序协作：
 
-**六类 agent**（`service/deep_research_v2/agents/`，均继承 `BaseAgent`）按序协作：
+Plan（`ChiefArchitect`）→ Research（`DeepScout`）→ Analyze（`DataAnalyst` / `CodeWizard`）→ Write（`LeadWriter`）→ Review（`CriticMaster`）→ 补搜或修订（Scout / Writer）→ Complete / QualityGateFailed
 
-Plan（`ChiefArchitect`）→ Research（`DeepScout`）→ Analyze（`DataAnalyst`）→ Write（`LeadWriter`）→ Review（`CriticMaster`）→（Review 不通过时 Revise：`CodeWizard`）→ Complete
-
-**数据通路**：`research_router` → `service.py` → `graph.py:run()`。实际执行的是
-**手写异步状态机 `_run_state_machine`**（支持实时 SSE 流式）；agent 产出的消息写入
-`asyncio.Queue`，由 `_run_state_machine` 逐条取出并 yield 为 SSE 事件（`run()` 仅委托转发）。
-
-`graph.py` 仅维护支持逐消息 SSE、取消、checkpoint 与评审返工的 AsyncIO 状态机。
+**数据通路**：`research_router` → `service.py` → `graph.py:run()` → **`_run_state_machine`**。
+Agent 消息写入 `asyncio.Queue`，由状态机逐条 yield 为 SSE；并支持取消、checkpoint 与评审返工。
 
 ## 3. RAG 数据流（知识库）
 
@@ -58,7 +54,7 @@ Plan（`ChiefArchitect`）→ Research（`DeepScout`）→ Analyze（`DataAnalys
 |-----------|------|
 | `app_main.py` | FastAPI 应用工厂 + lifespan（`create_all` 需显式 `DB_AUTO_CREATE=1`） |
 | `router/` | 12 个路由模块（research/chat/knowledge/document/news/auth/session/memory/…），只做参数校验与编排调用 |
-| `service/` | 业务逻辑（`deep_research_v2/`、`dr_g.py`、`retrieval_service`、`docmind_service` 等） |
+| `service/` | 业务逻辑（`deep_research/`、`retrieval_service`、`docmind_service` 等） |
 | `core/` | 横切设施：config、database、redis_client、安全（upload_security）、cors、serialization |
 | `models/` | SQLAlchemy ORM 模型 |
 | `schemas/` | Pydantic 请求/响应模型 |

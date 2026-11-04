@@ -2,8 +2,8 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 
 from observability.events import bind_event_recorder, bind_run_usage
-from service.deep_research_v2.agents import base as base_module
-from service.deep_research_v2.agents.base import BaseAgent
+from service.deep_research.agents import base as base_module
+from service.deep_research.agents.base import BaseAgent
 
 
 class ConcreteAgent(BaseAgent):

@@ -26,11 +26,11 @@
 - Create `backend/app/router/observability_router.py`: authenticated run/event/timeline endpoints.
 - Modify `backend/app/app_main.py`: initialize and shut down observability, register middleware, metrics and router.
 - Modify `backend/app/models/__init__.py`: export new models.
-- Modify `backend/app/service/deep_research_v2/service.py`: create/finalize runs and record streamed events.
-- Modify `backend/app/service/deep_research_v2/graph.py`: phase, checkpoint and completion spans/events.
-- Modify `backend/app/service/deep_research_v2/agents/base.py`: LLM metrics and generation spans.
-- Modify `backend/app/service/deep_research_v2/agents/scout.py`: web/Milvus retrieval spans and metrics.
-- Modify `backend/app/service/deep_research_v2/agents/wizard.py`: code-tool spans and metrics.
+- Modify `backend/app/service/deep_research/service.py`: create/finalize runs and record streamed events.
+- Modify `backend/app/service/deep_research/graph.py`: phase, checkpoint and completion spans/events.
+- Modify `backend/app/service/deep_research/agents/base.py`: LLM metrics and generation spans.
+- Modify `backend/app/service/deep_research/agents/scout.py`: web/Milvus retrieval spans and metrics.
+- Modify `backend/app/service/deep_research/agents/wizard.py`: code-tool spans and metrics.
 - Modify `backend/app/requirements.txt` and `backend/requirements.txt`: pinned observability dependencies.
 - Create `backend/migrations/20260719_research_observability.sql`: idempotent schema migration.
 
@@ -186,7 +186,7 @@ def record_generation_usage(span, *, input_tokens: int, output_tokens: int) -> N
   - event/trace backend failure does not block a final report;
   - web/Milvus/code tool calls record bounded metrics and sanitized events.
 - [ ] Run targeted tests and observe expected failures.
-- [ ] Add run lifecycle to `DeepResearchV2Service.research`, propagating context into `graph.run` and recording streamed event summaries.
+- [ ] Add run lifecycle to `DeepResearchService.research`, propagating context into `graph.run` and recording streamed event summaries.
 - [ ] Add phase/checkpoint spans around existing graph boundaries without changing state-machine decisions.
 - [ ] Instrument Scout web search and local retrieval, plus Wizard code execution. Do not log full documents, generated code, prompts or report text.
 - [ ] Run targeted and full backend suites; expected pass.

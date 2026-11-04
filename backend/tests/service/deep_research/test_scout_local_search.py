@@ -20,12 +20,12 @@ import asyncio
 from pathlib import Path
 
 from service import retrieval_service
-from service.deep_research_v2.agents import scout as scout_module
-from service.deep_research_v2.agents.scout import DeepScout
+from service.deep_research.agents import scout as scout_module
+from service.deep_research.agents.scout import DeepScout
 
 SCOUT_SOURCE_PATH = (
     Path(__file__).resolve().parents[3]
-    / "app" / "service" / "deep_research_v2" / "agents" / "scout.py"
+    / "app" / "service" / "deep_research" / "agents" / "scout.py"
 )
 
 
@@ -125,8 +125,8 @@ def test_retrieve_from_knowledge_base_derives_kb_prefixed_collection(monkeypatch
 
 def test_graph_run_wires_kb_name_into_initial_state(monkeypatch):
     """kb_name 必须能从 research() 一路进入初始状态（此前在 _research_stream 被丢弃）。"""
-    import service.deep_research_v2.agents as agents_package
-    from service.deep_research_v2.state import (
+    import service.deep_research.agents as agents_package
+    from service.deep_research.state import (
         create_initial_state as real_create_initial_state,
     )
 
@@ -136,7 +136,7 @@ def test_graph_run_wires_kb_name_into_initial_state(monkeypatch):
     )
     assert state["kb_name"] == "demo"
 
-    # conftest 把 service.deep_research_v2(.agents) 注册成了命名空间桩，
+    # conftest 把 service.deep_research(.agents) 注册成了命名空间桩，
     # 真实的 agents/__init__.py 不会执行，因此先给桩补上占位 agent 类再导入 graph
     # （与 tests/service/test_graph_outline_checkpoint.py 同一模式）。
     for agent_name in (
@@ -150,8 +150,8 @@ def test_graph_run_wires_kb_name_into_initial_state(monkeypatch):
         if not hasattr(agents_package, agent_name):
             setattr(agents_package, agent_name, type(agent_name, (), {}))
 
-    import service.deep_research_v2.graph as graph_module
-    from service.deep_research_v2.graph import DeepResearchGraph
+    import service.deep_research.graph as graph_module
+    from service.deep_research.graph import DeepResearchGraph
 
     # graph.run 层：签名接受 kb_name 并传入 create_initial_state。
     # 用 spy 捕获参数，并在拿到首个事件（research_start）后立即关闭生成器，

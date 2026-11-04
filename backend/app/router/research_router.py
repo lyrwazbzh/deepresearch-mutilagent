@@ -14,9 +14,8 @@ from starlette.status import (
 )
 import logging
 
-from service import ResearchService, ServiceConfig
-from core.serialization import sse_frame  # 中立公共位置（T15）：不再反向依赖 V1 备选路线模块 dr_g
-from core.research_cancel import request_cancel  # 取消协议的中立位（T68）：本模块不再自己拥有它
+from core.serialization import sse_frame
+from core.research_cancel import request_cancel
 from models.user import User
 from router.auth_router import get_current_user_required
 from service.checkpoint_service import (
@@ -24,9 +23,7 @@ from service.checkpoint_service import (
     OutlineApprovalConflict,
     get_checkpoint_service,
 )
-
-# V2 导入
-from service.deep_research_v2.service import DeepResearchV2Service
+from service.deep_research.service import DeepResearchService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ResearchRouter")
@@ -46,10 +43,6 @@ class ResearchRequest(BaseModel):
     search_modes: Optional[list] = None  # 搜索模式: ['web', 'local'] (新版)
     search_database: bool = False
     database_profile_id: Optional[str] = None
-    # 版本选择：v2 = 多智能体架构（deep_research_v2/，默认，推荐）；
-    # v1 = ReAct 备选路线（service/dr_g.py + react_controller.py + tool_executor.py，
-    # 有意保留，NG-3 —— 不得当死代码删除）。
-    version: Optional[Literal["v1", "v2"]] = "v2"
 
     class Config:
         json_schema_extra = {
@@ -59,7 +52,6 @@ class ResearchRequest(BaseModel):
                 "max_iterations": 3,
                 "kb_name": None,
                 "search_modes": ["web", "local"],
-                "version": "v2"
             }
         }
 
@@ -128,116 +120,53 @@ class ApproveOutlineRequest(BaseModel):
             raise ValueError("outline_revision must not be blank")
         return value
 
-class LazyResearchService:
-    """Resolve the legacy V1 service only when its stream is actually consumed."""
+def get_research_service(max_iterations: int | None = None):
+    """获取研究服务实例（AsyncIO 六专家主链）。"""
+    return DeepResearchService(max_iterations=max_iterations)
 
-    def __init__(self):
-        self._service = None
-
-    def _resolve(self):
-        if self._service is None:
-            config = ServiceConfig.get_api_config()
-            self._service = ResearchService(
-                search_api_key=config.get("bochaai_api_key"),
-                llm_api_key=config.get("dashscope_api_key"),
-                llm_base_url=config.get("dashscope_base_url"),
-            )
-        return self._service
-
-    async def research_stream(self, **kwargs):
-        async for event in self._resolve().research_stream(**kwargs):
-            yield event
-
-
-def get_research_service():
-    """Return a lazy legacy service so V2 requests never read V1 credentials."""
-    return {"research_service": LazyResearchService()}
-
-
-def get_research_service_v2(max_iterations: int | None = None):
-    """获取 V2 研究服务实例（使用配置文件中的模型设置）"""
-    # 直接创建服务，配置从 llm_config.py 读取
-    return DeepResearchV2Service(max_iterations=max_iterations)
 
 @router.post("/stream", status_code=HTTP_200_OK)
 async def stream_research(
     request: ResearchRequest,
     current_user: User = Depends(get_current_user_required),
-    services: Dict[str, Any] = Depends(get_research_service),
 ):
-    """
-    深度研究接口 - 流式输出
-
-    对用户的研究问题执行全面的深度研究，包括问题分解、网络搜索、信息整合、数据分析和报告生成。
-    使用 Server-Sent Events (SSE) 格式流式返回整个研究过程和结果。
-
-    支持两个版本：
-    - v1: 传统 ReAct 架构
-    - v2: 多智能体协作网络（推荐）
-
-    Args:
-        request: 包含研究问题和配置的请求体
-
-    Returns:
-        流式响应，包含研究过程和结果的 SSE 格式数据
-    """
-    # 根据版本选择服务
-    if request.version == "v2":
-        search_web = request.get_search_web()
-        search_local = request.get_search_local()
-        search_database = request.get_search_database()
-        if search_database and not request.database_profile_id:
-            raise HTTPException(
-                status_code=HTTP_400_BAD_REQUEST,
-                detail="database_profile_id is required when database search is enabled",
-            )
-        logger.info(f"Using DeepResearch V2 for query: {request.query[:50]}... (session_id: {request.session_id}, search_web={search_web}, search_local={search_local})")
-        service_v2 = get_research_service_v2(request.max_iterations)
-
-        async def generate_sse_v2():
-            try:
-                async for event in service_v2.research(
-                    query=request.query,
-                    session_id=request.session_id,
-                    kb_name=request.kb_name,
-                    search_web=search_web,
-                    search_local=search_local,
-                    search_database=search_database,
-                    database_profile_id=request.database_profile_id,
-                    user_id=str(current_user.id),
-                ):
-                    yield event
-            except Exception as e:
-                logger.error(f"V2 Research error: {e}")
-                yield sse_frame({"type": "error", "content": str(e)})
-
-        return StreamingResponse(
-            generate_sse_v2(),
-            media_type="text/event-stream"
+    """深度研究 SSE：规划 → 多源检索 → 分析写作 → Critic 门禁与返工。"""
+    search_web = request.get_search_web()
+    search_local = request.get_search_local()
+    search_database = request.get_search_database()
+    if search_database and not request.database_profile_id:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="database_profile_id is required when database search is enabled",
         )
-
-    # V1 协作者直到流真正执行时才解析配置；V2 不读取 V1 凭据。
-    research_service = services["research_service"]
+    logger.info(
+        "DeepResearch stream query=%s... session_id=%s search_web=%s search_local=%s",
+        request.query[:50],
+        request.session_id,
+        search_web,
+        search_local,
+    )
+    service = get_research_service(request.max_iterations)
 
     async def generate_sse():
         try:
-            async for event in research_service.research_stream(
+            async for event in service.research(
                 query=request.query,
-                max_iterations=request.max_iterations,
+                session_id=request.session_id,
                 kb_name=request.kb_name,
-                search_web=request.search_web,
-                search_local=request.search_local
+                search_web=search_web,
+                search_local=search_local,
+                search_database=search_database,
+                database_profile_id=request.database_profile_id,
+                user_id=str(current_user.id),
             ):
-                # V1 路线在 dr_g 内已序列化，这里只套信封（T67）
-                yield sse_frame(event)
+                yield event
         except Exception as e:
-            # 统一走中立公共信封，确保错误事件的 JSON 格式一致（T67）
+            logger.error(f"Research error: {e}")
             yield sse_frame({"type": "error", "content": str(e)})
 
-    return StreamingResponse(
-        generate_sse(),
-        media_type="text/event-stream"
-    )
+    return StreamingResponse(generate_sse(), media_type="text/event-stream")
+
 
 @router.get("/stream", status_code=HTTP_200_OK)
 async def stream_research_get(
@@ -248,81 +177,34 @@ async def stream_research_get(
     search_local: bool = Query(True, description="是否搜索本地知识库"),
     search_database: bool = Query(False, description="是否检索预配置只读数据库"),
     database_profile_id: Optional[str] = Query(None, description="只读数据库配置标识"),
-    version: Literal["v1", "v2"] = Query("v2", description="版本: v1 或 v2"),
     current_user: User = Depends(get_current_user_required),
-    services: Dict[str, Any] = Depends(get_research_service),
 ):
-    """
-    深度研究接口 - GET方式流式输出
-
-    对用户的研究问题执行全面的深度研究，包括问题分解、网络搜索、信息整合、数据分析和报告生成。
-    使用 Server-Sent Events (SSE) 格式流式返回整个研究过程和结果。
-
-    支持两个版本：
-    - v1: 传统 ReAct 架构
-    - v2: 多智能体协作网络（推荐）
-
-    Args:
-        query: 研究问题
-        max_iterations: 最大迭代次数（范围：1-5）
-        version: 版本选择 (v1 或 v2)
-
-    Returns:
-        流式响应，包含研究过程和结果的 SSE 格式数据
-    """
-    # 根据版本选择服务
-    if version == "v2":
-        if search_database and not database_profile_id:
-            raise HTTPException(
-                status_code=HTTP_400_BAD_REQUEST,
-                detail="database_profile_id is required when database search is enabled",
-            )
-        logger.info(f"Using DeepResearch V2 (GET) for query: {query[:50]}...")
-        service_v2 = get_research_service_v2(max_iterations)
-
-        async def generate_sse_v2():
-            try:
-                async for event in service_v2.research(
-                    query=query,
-                    kb_name=kb_name,
-                    user_id=str(current_user.id),
-                    search_web=search_web,
-                    search_local=search_local,
-                    search_database=search_database,
-                    database_profile_id=database_profile_id,
-                ):
-                    yield event
-            except Exception as e:
-                logger.error(f"V2 Research error: {e}")
-                yield sse_frame({"type": "error", "content": str(e)})
-
-        return StreamingResponse(
-            generate_sse_v2(),
-            media_type="text/event-stream"
+    """深度研究 SSE（GET）。"""
+    if search_database and not database_profile_id:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="database_profile_id is required when database search is enabled",
         )
-
-    # V1 原有逻辑
-    research_service = services["research_service"]
+    logger.info("DeepResearch stream (GET) query=%s...", query[:50])
+    service = get_research_service(max_iterations)
 
     async def generate_sse():
         try:
-            async for event in research_service.research_stream(
+            async for event in service.research(
                 query=query,
-                max_iterations=max_iterations,
                 kb_name=kb_name,
+                user_id=str(current_user.id),
                 search_web=search_web,
-                search_local=search_local
+                search_local=search_local,
+                search_database=search_database,
+                database_profile_id=database_profile_id,
             ):
-                # V1 路线在 dr_g 内已序列化，这里只套信封（T67）
-                yield sse_frame(event)
+                yield event
         except Exception as e:
-            # 统一走中立公共信封，确保错误事件的 JSON 格式一致（T67）
+            logger.error(f"Research error: {e}")
             yield sse_frame({"type": "error", "content": str(e)})
 
-    return StreamingResponse(
-        generate_sse(),
-        media_type="text/event-stream"
-    )
+    return StreamingResponse(generate_sse(), media_type="text/event-stream")
 
 
 @router.get("/test-wizard", status_code=HTTP_200_OK)
@@ -334,8 +216,8 @@ async def test_wizard_endpoint(
 
     使用模拟数据直接测试图表生成功能。
     """
-    from service.deep_research_v2.agents.wizard import CodeWizard
-    from service.deep_research_v2.state import ResearchState, ResearchPhase, create_initial_state
+    from service.deep_research.agents.wizard import CodeWizard
+    from service.deep_research.state import ResearchState, ResearchPhase, create_initial_state
     from config.llm_config import get_config
 
     # 使用配置创建 CodeWizard 实例
@@ -618,11 +500,11 @@ async def approve_research_outline(
             detail=str(exc),
         ) from exc
 
-    service_v2 = get_research_service_v2()
+    service = get_research_service()
 
     async def generate_sse():
         try:
-            async for event in service_v2.research(
+            async for event in service.research(
                 query=state.get("query", ""),
                 session_id=session_id,
                 resume=True,
@@ -675,12 +557,11 @@ async def resume_research(
                 detail="Outline approval required before research can resume",
             )
 
-        # 使用 V2 服务恢复
-        service_v2 = get_research_service_v2()
+        service = get_research_service()
 
         async def generate_sse():
             try:
-                async for event in service_v2.research(
+                async for event in service.research(
                     query=info.get("query", ""),
                     session_id=session_id,
                     resume=True,

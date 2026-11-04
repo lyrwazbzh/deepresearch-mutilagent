@@ -76,7 +76,7 @@ deepresearch-mutilagent/
 ├─ backend/                 FastAPI、AsyncIO 状态机、Agent、检索、记忆和容错
 │  ├─ app/contracts/        在线工具路由契约
 │  ├─ app/service/
-│  │  ├─ deep_research_v2/  六 Agent 研究主链
+│  │  ├─ deep_research/  六 Agent 研究主链
 │  │  ├─ retrieval/         Milvus + Elasticsearch/BM25 + RRF
 │  │  ├─ tool_routing/      Adapter 调用、灰度与规则回退
 │  │  ├─ resilience/        Retry、Circuit Breaker、DLQ、幂等

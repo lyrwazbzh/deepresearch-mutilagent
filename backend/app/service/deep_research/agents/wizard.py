@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 数据极客 Agent (CodeWizard)
+DeepResearch - 数据极客 Agent (CodeWizard)
 
 职责：
 1. 数据清洗 - 统一不同来源的数据口径

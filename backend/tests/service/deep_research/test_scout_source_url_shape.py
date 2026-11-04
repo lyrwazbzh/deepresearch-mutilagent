@@ -34,17 +34,17 @@ T69 追加（本票的核心收益）：三处写入边界已收拢为**唯一�
 import asyncio
 from pathlib import Path
 
-from service.deep_research_v2.agents.scout import (
+from service.deep_research.agents.scout import (
     DeepScout,
     build_data_point,
     build_fact_entry,
     normalize_source_url,
 )
-from service.deep_research_v2.state import create_initial_state
+from service.deep_research.state import create_initial_state
 
 SCOUT_SOURCE_PATH = (
     Path(__file__).resolve().parents[3]
-    / "app" / "service" / "deep_research_v2" / "agents" / "scout.py"
+    / "app" / "service" / "deep_research" / "agents" / "scout.py"
 )
 
 

@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 总架构师 Agent (ChiefArchitect)
+DeepResearch - 总架构师 Agent (ChiefArchitect)
 
 职责：
 1. 意图解码 - 深度理解用户问题

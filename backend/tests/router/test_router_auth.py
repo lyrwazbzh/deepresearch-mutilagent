@@ -35,10 +35,7 @@
 —— 那等于回到硬编码清单的老路，只是失败得更隐蔽。所以导入循环**不吞异常**，失败原因逐条收进
 `_IMPORT_ERRORS`，由 `test_every_router_module_is_runtime_importable` 断言为空。
 
-T64 施工时这条锁立刻起作用：`research_router` 是 12 个模块里**唯一**导入不进来的（conftest 的
-`service` 占位包缺 `ResearchService`、`deep_research_v2.agents` 占位包不执行 `__init__` 致
-`service.deep_research_v2.service` 连带不可导入），其 10 个端点**从来没有被任何鉴权回归覆盖过**。
-修法是给共享 conftest 补两处占位（见该文件的 T64 注释，实测总代价 ~0.1s），本文件因此覆盖到 **12/12**。
+导入失败会使端点从判据里静默消失；本文件要求全部 router 模块可导入，覆盖到 **12/12**。
 
 ## 判据的三层
 
@@ -250,13 +247,7 @@ def test_classification_matches_endpoint_count_guard() -> None:
 def test_every_router_module_is_runtime_importable() -> None:
     """🔒 覆盖完整性：**每个**路由模块都必须在运行时真正导入进来。
 
-    这条锁不是形式主义 —— T64 施工时它立刻抓到 `research_router`：它是 12 个模块里唯一
-    导入失败的一个（`tests/conftest.py` 的占位包缺 `ResearchService` /
-    `deep_research_v2.agents` 不执行 `__init__`），于是它的 **10 个端点从来没有被任何鉴权
-    回归覆盖过**，而且失败方式是「从参数化清单里静默消失」—— 与硬编码清单是同一类结构性
-    盲区，只是更隐蔽。
-
-    因此：任何模块一旦导入失败，本用例必须红，而不是让它的端点悄悄退出判据范围。
+    任何模块一旦导入失败，本用例必须红，避免端点从参数化清单里静默消失。
     """
     assert not _IMPORT_ERRORS, (
         f"以下路由模块在测试环境无法导入：{sorted(_IMPORT_ERRORS)}。"
@@ -295,19 +286,11 @@ def test_no_unauthenticated_endpoint_outside_the_allowlist() -> None:
 def test_auth_is_the_first_dependency_resolved() -> None:
     """🔒 鉴权必须是**第一个**被解析的依赖 —— 任何其它依赖都不得排在它前面。
 
-    这条锁来自 CI 实测（本票开 PR 后第一次跑就红了）：`research_router` 的
-    `POST /research/stream` 与 `GET /research/stream` 原先把
-    `services = Depends(get_research_service)` 写在 `current_user` **之前**。
-    FastAPI 按签名顺序**逐个**解析依赖、任一个抛异常就短路，于是
-    **未登录请求也会真的构造 V1 研究服务**（`ResearchService(...)` 要读 `BOCHA_API_KEY`）。
-    后果有二：
+    FastAPI 按签名顺序逐个解析依赖。鉴权必须排在服务构造等依赖之前，
+    否则未登录请求可能先触发业务依赖（配置读取 / 服务初始化）再失败，
+    把「无 Token → 401」变成依赖部署配置的 500，并泄漏服务端状态。
 
-    1. 「无 Token 应 401」在有 `.env` 的开发机上侥幸成立，在 CI（无 `.env`）上变成 **500** ——
-       也就是说「未登录一定被挡住」这件事**依赖于部署配置**，不再由代码保证；
-    2. 把服务端配置状态泄漏给匿名调用方，并让匿名请求付出本不该发生的构造开销。
-
-    修复方式是把鉴权参数挪到签名最前；本仓 65 个受保护端点现已全部满足该性质。
-    新增端点若把别的依赖写在鉴权之前，这里会直接挡下。
+    受保护端点须把 `get_current_user_required` 放在依赖列表最前。
     """
     offenders: List[str] = []
 

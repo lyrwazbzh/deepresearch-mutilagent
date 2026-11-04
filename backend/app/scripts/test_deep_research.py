@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 端到端测试
+DeepResearch 端到端测试
 
 测试完整的多智能体研究工作流程：
 1. ChiefArchitect - 规划研究大纲
@@ -12,7 +12,7 @@ DeepResearch V2.0 端到端测试
 5. CriticMaster - 审核质量
 
 使用方法：
-    python -m scripts.test_deep_research_v2
+    python -m scripts.test_deep_research
 """
 
 import os
@@ -33,10 +33,10 @@ logger = logging.getLogger("E2E_Test")
 
 async def test_full_workflow():
     """测试完整的研究工作流程"""
-    from service.deep_research_v2.service import DeepResearchV2Service
+    from service.deep_research.service import DeepResearchService
 
     print("\n" + "=" * 60)
-    print("DeepResearch V2.0 端到端测试")
+    print("DeepResearch 端到端测试")
     print("=" * 60)
 
     # 检查环境变量
@@ -55,7 +55,7 @@ async def test_full_workflow():
     print(f"✅ BOCHA_API_KEY: {bocha_key[:8]}...")
 
     # 创建服务
-    service = DeepResearchV2Service(
+    service = DeepResearchService(
         llm_api_key=dashscope_key,
         search_api_key=bocha_key,
         model="qwen-max",
@@ -216,8 +216,8 @@ async def test_individual_agents():
     # 测试 ChiefArchitect
     print("\n1. 测试 ChiefArchitect (规划)")
     try:
-        from service.deep_research_v2.agents import ChiefArchitect
-        from service.deep_research_v2.state import create_initial_state
+        from service.deep_research.agents import ChiefArchitect
+        from service.deep_research.state import create_initial_state
 
         architect = ChiefArchitect(dashscope_key, llm_base_url, "qwen-max")
         state = create_initial_state("新能源汽车发展趋势", "test-session-1")
@@ -238,7 +238,7 @@ async def test_individual_agents():
     # 测试 DeepScout
     print("\n2. 测试 DeepScout (搜索)")
     try:
-        from service.deep_research_v2.agents import DeepScout
+        from service.deep_research.agents import DeepScout
 
         scout = DeepScout(dashscope_key, llm_base_url, bocha_key, "qwen-plus")
 
@@ -260,7 +260,7 @@ async def test_individual_agents():
     # 测试 CodeWizard
     print("\n3. 测试 CodeWizard (分析)")
     try:
-        from service.deep_research_v2.agents import CodeWizard
+        from service.deep_research.agents import CodeWizard
 
         wizard = CodeWizard(dashscope_key, llm_base_url, "qwen-max")
         result["phase"] = "analyzing"
@@ -282,7 +282,7 @@ async def test_individual_agents():
 async def main():
     """主函数"""
     print("\n" + "=" * 60)
-    print("DeepResearch V2.0 端到端测试套件")
+    print("DeepResearch 端到端测试套件")
     print("时间:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     print("=" * 60)
 

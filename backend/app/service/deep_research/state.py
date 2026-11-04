@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 状态管理模块
+DeepResearch - 状态管理模块
 
 实现全局工作记忆（Global Working Memory），所有Agent共享此状态。
 使用 TypedDict 约束自研 asyncio 状态机的共享状态契约。

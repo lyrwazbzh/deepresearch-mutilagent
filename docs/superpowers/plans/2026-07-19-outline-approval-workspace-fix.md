@@ -89,7 +89,7 @@ git commit -m "fix: persist deep research checkpoints safely"
 
 **Files:**
 - Create: `backend/tests/service/test_graph_outline_checkpoint.py`
-- Modify: `backend/app/service/deep_research_v2/graph.py`
+- Modify: `backend/app/service/deep_research/graph.py`
 
 - [ ] **Step 1: Write the failing graph regression test**
 
@@ -138,7 +138,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit the graph guard**
 
 ```powershell
-git add backend/app/service/deep_research_v2/graph.py backend/tests/service/test_graph_outline_checkpoint.py
+git add backend/app/service/deep_research/graph.py backend/tests/service/test_graph_outline_checkpoint.py
 git commit -m "fix: require durable outline checkpoints"
 ```
 

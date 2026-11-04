@@ -1,6 +1,6 @@
 import pytest
 
-import service.deep_research_v2.agents as agents_package
+import service.deep_research.agents as agents_package
 
 
 for agent_name in (
@@ -15,7 +15,7 @@ for agent_name in (
         setattr(agents_package, agent_name, type(agent_name, (), {}))
 
 
-from service.deep_research_v2.graph import DeepResearchGraph
+from service.deep_research.graph import DeepResearchGraph
 
 
 class FakeArchitect:

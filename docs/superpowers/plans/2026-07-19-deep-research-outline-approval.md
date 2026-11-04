@@ -23,8 +23,8 @@ New files and responsibilities:
 
 - `backend/pytest.ini`: backend pytest configuration and markers.
 - `backend/tests/conftest.py`: test environment and reusable fixtures.
-- `backend/tests/service/deep_research_v2/test_architect_planning.py`: outline/search-plan parsing and fallback tests.
-- `backend/tests/service/deep_research_v2/test_phase_dispatcher.py`: phase-resume regression tests.
+- `backend/tests/service/deep_research/test_architect_planning.py`: outline/search-plan parsing and fallback tests.
+- `backend/tests/service/deep_research/test_phase_dispatcher.py`: phase-resume regression tests.
 - `backend/tests/service/test_checkpoint_service.py`: ownership, revision, uniqueness, and atomic approval tests.
 - `backend/tests/router/test_research_outline_approval.py`: authenticated HTTP/SSE contract tests.
 - `backend/tests/evals/test_outline_planning_eval.py`: opt-in live-LLM quality evaluation.
@@ -45,10 +45,10 @@ Modified files and responsibilities:
 
 - `backend/requirements.txt`: pytest dependencies.
 - `backend/app/models/research.py`: unique session constraint metadata.
-- `backend/app/service/deep_research_v2/state.py`: approval phase and revision fields.
-- `backend/app/service/deep_research_v2/agents/architect.py`: split outline and search-plan generation.
+- `backend/app/service/deep_research/state.py`: approval phase and revision fields.
+- `backend/app/service/deep_research/agents/architect.py`: split outline and search-plan generation.
 - `backend/app/service/checkpoint_service.py`: user-scoped access and atomic approval.
-- `backend/app/service/deep_research_v2/graph.py`: phase dispatcher and pause/resume boundaries.
+- `backend/app/service/deep_research/graph.py`: phase dispatcher and pause/resume boundaries.
 - `backend/app/router/research_router.py`: authenticated stream, approve, resume, cancel, and checkpoint routes.
 - `frontend/package.json` and `frontend/package-lock.json`: test dependencies and scripts.
 - `frontend/src/api/session.ts`: approve/resume streaming APIs and types.
@@ -60,8 +60,8 @@ Modified files and responsibilities:
 - Modify: `backend/requirements.txt`
 - Create: `backend/pytest.ini`
 - Create: `backend/tests/conftest.py`
-- Create: `backend/tests/service/deep_research_v2/test_state.py`
-- Modify: `backend/app/service/deep_research_v2/state.py`
+- Create: `backend/tests/service/deep_research/test_state.py`
+- Modify: `backend/app/service/deep_research/state.py`
 
 - [ ] **Step 1: Add backend test dependencies**
 
@@ -99,10 +99,10 @@ os.environ.setdefault("ENV", "test")
 
 - [ ] **Step 2: Write failing state tests**
 
-Create `backend/tests/service/deep_research_v2/test_state.py`:
+Create `backend/tests/service/deep_research/test_state.py`:
 
 ```python
-from service.deep_research_v2.state import ResearchPhase, create_initial_state
+from service.deep_research.state import ResearchPhase, create_initial_state
 
 
 def test_state_exposes_outline_approval_phase():
@@ -117,7 +117,7 @@ def test_initial_state_has_no_outline_revision():
 
 - [ ] **Step 3: Run the tests and verify the expected failure**
 
-Run: `cd backend && python -m pytest tests/service/deep_research_v2/test_state.py -q`
+Run: `cd backend && python -m pytest tests/service/deep_research/test_state.py -q`
 
 Expected: FAIL because `AWAITING_OUTLINE_APPROVAL` and `outline_revision` do not exist.
 
@@ -142,22 +142,22 @@ Set `outline_revision=None` in `create_initial_state()`.
 
 - [ ] **Step 5: Verify and commit**
 
-Run: `cd backend && python -m pytest tests/service/deep_research_v2/test_state.py -q`
+Run: `cd backend && python -m pytest tests/service/deep_research/test_state.py -q`
 
 Expected: `2 passed`.
 
 Commit:
 
 ```bash
-git add backend/requirements.txt backend/pytest.ini backend/tests/conftest.py backend/tests/service/deep_research_v2/test_state.py backend/app/service/deep_research_v2/state.py
+git add backend/requirements.txt backend/pytest.ini backend/tests/conftest.py backend/tests/service/deep_research/test_state.py backend/app/service/deep_research/state.py
 git commit -m "test: establish deep research state test foundation"
 ```
 
 ### Task 2: Split Architect outline and search-plan generation
 
 **Files:**
-- Create: `backend/tests/service/deep_research_v2/test_architect_planning.py`
-- Modify: `backend/app/service/deep_research_v2/agents/architect.py`
+- Create: `backend/tests/service/deep_research/test_architect_planning.py`
+- Modify: `backend/app/service/deep_research/agents/architect.py`
 
 - [ ] **Step 1: Write failing parser and process-routing tests**
 
@@ -198,7 +198,7 @@ Also cover duplicate IDs, unknown IDs, one automatic retry, at least three valid
 
 - [ ] **Step 2: Run the focused tests**
 
-Run: `cd backend && python -m pytest tests/service/deep_research_v2/test_architect_planning.py -q`
+Run: `cd backend && python -m pytest tests/service/deep_research/test_architect_planning.py -q`
 
 Expected: FAIL because the two-stage methods and stable-ID parser are absent.
 
@@ -232,14 +232,14 @@ If fewer than three sections are valid, append a descriptive error and leave `ph
 
 - [ ] **Step 4: Verify and commit**
 
-Run: `cd backend && python -m pytest tests/service/deep_research_v2/test_architect_planning.py -q`
+Run: `cd backend && python -m pytest tests/service/deep_research/test_architect_planning.py -q`
 
 Expected: all tests pass.
 
 Commit:
 
 ```bash
-git add backend/app/service/deep_research_v2/agents/architect.py backend/tests/service/deep_research_v2/test_architect_planning.py
+git add backend/app/service/deep_research/agents/architect.py backend/tests/service/deep_research/test_architect_planning.py
 git commit -m "feat: split outline and search plan generation"
 ```
 
@@ -351,8 +351,8 @@ git commit -m "feat: approve research outlines atomically"
 ### Task 4: Replace unconditional orchestration with a phase dispatcher
 
 **Files:**
-- Create: `backend/tests/service/deep_research_v2/test_phase_dispatcher.py`
-- Modify: `backend/app/service/deep_research_v2/graph.py`
+- Create: `backend/tests/service/deep_research/test_phase_dispatcher.py`
+- Modify: `backend/app/service/deep_research/graph.py`
 
 - [ ] **Step 1: Write resume regression tests**
 
@@ -377,7 +377,7 @@ test_waiting_approval_is_a_noop_for_dispatcher
 
 - [ ] **Step 2: Verify the current implementation fails**
 
-Run: `cd backend && python -m pytest tests/service/deep_research_v2/test_phase_dispatcher.py -q`
+Run: `cd backend && python -m pytest tests/service/deep_research/test_phase_dispatcher.py -q`
 
 Expected: FAIL because `_run_simplified()` resets every run to `init`.
 
@@ -389,14 +389,14 @@ Preserve existing cancellation checks and UI checkpoint data. Ensure `save_check
 
 - [ ] **Step 4: Verify and commit**
 
-Run: `cd backend && python -m pytest tests/service/deep_research_v2/test_phase_dispatcher.py -q`
+Run: `cd backend && python -m pytest tests/service/deep_research/test_phase_dispatcher.py -q`
 
 Expected: all tests pass.
 
 Commit:
 
 ```bash
-git add backend/app/service/deep_research_v2/graph.py backend/tests/service/deep_research_v2/test_phase_dispatcher.py
+git add backend/app/service/deep_research/graph.py backend/tests/service/deep_research/test_phase_dispatcher.py
 git commit -m "fix: resume deep research from persisted phases"
 ```
 
@@ -460,7 +460,7 @@ class ApproveOutlineRequest(BaseModel):
 
 Require `current_user: User = Depends(get_current_user_required)` on V2 stream, approve, resume, cancel, checkpoint read/list/delete routes. Pass `str(current_user.id)` into V2 research and checkpoint service calls.
 
-Add `POST /research/outline/{session_id}/approve`, atomically approve before constructing `StreamingResponse`, then call `service_v2.research(query=info["query"], session_id=session_id, resume=True, user_id=str(current_user.id))` so the returned response continues from `planning`.
+Add `POST /research/outline/{session_id}/approve`, atomically approve before constructing `StreamingResponse`, then call `service.research(query=info["query"], session_id=session_id, resume=True, user_id=str(current_user.id))` so the returned response continues from `planning`.
 
 - [ ] **Step 4: Verify and commit**
 
@@ -702,7 +702,7 @@ Run:
 
 ```bash
 cd backend
-python -m pytest tests/service tests/router -q --cov=app/service/deep_research_v2 --cov=app/service/checkpoint_service.py --cov=app/router/research_router.py --cov-report=term-missing
+python -m pytest tests/service tests/router -q --cov=app/service/deep_research --cov=app/service/checkpoint_service.py --cov=app/router/research_router.py --cov-report=term-missing
 ```
 
 Expected: all tests pass; every new branch in Architect, checkpoint approval, phase dispatch, and router error mapping is covered.

@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - Agent 基类
+DeepResearch - Agent 基类
 
 所有专家Agent的基类，提供通用的LLM调用、日志记录等功能。
 """

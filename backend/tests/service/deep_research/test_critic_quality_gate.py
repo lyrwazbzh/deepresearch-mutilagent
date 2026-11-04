@@ -2,8 +2,8 @@ import logging
 
 import pytest
 
-from service.deep_research_v2.agents.critic import CriticMaster
-from service.deep_research_v2.state import (
+from service.deep_research.agents.critic import CriticMaster
+from service.deep_research.state import (
     ResearchPhase,
     create_initial_state,
 )

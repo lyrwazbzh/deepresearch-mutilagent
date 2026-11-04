@@ -5,15 +5,15 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 from uuid import uuid4
 
-from service.deep_research_v2.agents.architect import ChiefArchitect
-from service.deep_research_v2.agents.critic import CriticMaster
-from service.deep_research_v2.agents.data_analyst import DataAnalyst
-from service.deep_research_v2.agents.scout import DeepScout
-from service.deep_research_v2.agents.wizard import CodeWizard
-from service.deep_research_v2.agents.writer import LeadWriter
+from service.deep_research.agents.architect import ChiefArchitect
+from service.deep_research.agents.critic import CriticMaster
+from service.deep_research.agents.data_analyst import DataAnalyst
+from service.deep_research.agents.scout import DeepScout
+from service.deep_research.agents.wizard import CodeWizard
+from service.deep_research.agents.writer import LeadWriter
 
 
-_agents_package = sys.modules["service.deep_research_v2.agents"]
+_agents_package = sys.modules["service.deep_research.agents"]
 for _agent_class in (
     ChiefArchitect,
     CriticMaster,
@@ -24,13 +24,13 @@ for _agent_class in (
 ):
     setattr(_agents_package, _agent_class.__name__, _agent_class)
 
-# T64：`tests/conftest.py` 现在为 `service.deep_research_v2.service` 注册了一个**替身**
+# T64：`tests/conftest.py` 现在为 `service.deep_research.service` 注册了一个**替身**
 # （目的是让 `router/research_router` 能导入，从而被鉴权的目录级回归锁覆盖）。本测试要的是
 # **真实**模块 —— 它 monkeypatch `get_config`、并断言 V2 编排的真实行为，拿到替身会直接
 # AttributeError。故按 conftest 注释里写明的做法，先清掉替身再导入真实模块。
-sys.modules.pop("service.deep_research_v2.service", None)
+sys.modules.pop("service.deep_research.service", None)
 
-service_module = importlib.import_module("service.deep_research_v2.service")
+service_module = importlib.import_module("service.deep_research.service")
 
 
 class FakeGraph:
@@ -99,7 +99,7 @@ def make_service(monkeypatch, ledger):
         yield FakeRootTrace()
 
     monkeypatch.setattr(service_module, "span", fake_span, raising=False)
-    return service_module.DeepResearchV2Service(observability_service=ledger)
+    return service_module.DeepResearchService(observability_service=ledger)
 
 
 async def test_research_creates_correlated_run_events_and_completion(monkeypatch):

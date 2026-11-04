@@ -9,7 +9,7 @@
 
 import pytest
 
-import service.deep_research_v2.agents as agents_package
+import service.deep_research.agents as agents_package
 
 # 兜底：与同目录其它用例一致 —— 精简环境下 `agents` 包缺真实类时补占位名，
 # 保证 graph 模块可导入（本机真实类存在，正常环境下不产生副作用）。
@@ -24,7 +24,7 @@ for _agent_name in (
     if not hasattr(agents_package, _agent_name):
         setattr(agents_package, _agent_name, type(_agent_name, (), {}))
 
-from service.deep_research_v2.graph import DeepResearchGraph
+from service.deep_research.graph import DeepResearchGraph
 
 
 class _Cancellation:

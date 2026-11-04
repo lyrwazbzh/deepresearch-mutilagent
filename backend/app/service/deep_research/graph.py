@@ -1,7 +1,7 @@
 # Copyright © 2026 深圳市深维智见教育科技有限公司 版权所有
 # 未经授权，禁止转售或仿制。
 
-"""DeepResearch V2.0 asynchronous research state machine.
+"""DeepResearch asynchronous research state machine.
 
 The hand-written asyncio runtime owns SSE streaming, checkpointing,
 cancellation and review/revision orchestration.
@@ -63,7 +63,7 @@ logger = logging.getLogger("DeepResearchGraph")
 
 class DeepResearchGraph:
     """
-    DeepResearch V2.0 工作流图
+    DeepResearch 工作流图
 
     实现完整的多智能体协作流程：
     1. Plan (ChiefArchitect) - 分析问题，生成研究大纲

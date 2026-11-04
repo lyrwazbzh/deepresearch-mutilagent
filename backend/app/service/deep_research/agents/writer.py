@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 首席笔杆 Agent (LeadWriter)
+DeepResearch - 首席笔杆 Agent (LeadWriter)
 
 职责：
 1. 深度写作 - 将零散信息串联成逻辑严密的报告

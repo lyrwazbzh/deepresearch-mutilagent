@@ -89,7 +89,7 @@ Milvus 索引参数：`IVF_FLAT` + `COSINE` 距离，`nlist=128`，查询 `nprob
 | `service/retrieval_service.py` | `retrieve_content` / `retrieve_from_knowledge_base`（正确用 kb_xxx）|
 | `router/knowledge_router.py` | 知识库 CRUD + 用户上传（后台异步入库）+ chunk 查看 |
 | `router/document_router.py` | 方案 B 的外部 API 路由（RAGFlow 风格）|
-| `service/deep_research_v2/agents/scout.py` | DeepResearch 的搜索 agent，`_execute_local_search` 硬编码 collection（bug）|
+| `service/deep_research/agents/scout.py` | DeepResearch 的搜索 agent，`_execute_local_search` 硬编码 collection（bug）|
 | `router/search_router.py` | 单独的网络搜索接口（Serper/Bocha）|
 
 ## 六、Milvus collection schema

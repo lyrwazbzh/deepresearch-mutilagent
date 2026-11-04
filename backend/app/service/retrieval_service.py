@@ -99,17 +99,10 @@ def format_local_search_results(
     results: List[Dict[str, Any]],
     kb_name: str,
 ) -> List[Dict[str, Any]]:
-    """把 ``retrieve_from_knowledge_base`` 的原始结果转成**唯一的本地检索 shape**。
+    """把 ``retrieve_from_knowledge_base`` 的原始结果转成唯一的本地检索 shape。
 
-    背景（T45 方案 B）：本地检索结果的形状此前有**三处**独立实现且字段已分叉 ——
-    ``deep_research_v2/agents/scout.py``（V2 主链路）用 ``title`` / ``site_name`` /
-    ``is_local``，而 ``dr_g.py`` 与 ``tool_executor.py``（V1 备选路线）用 ``name`` /
-    ``siteName`` / ``source``，连 ``url`` 前缀都不同（``local://kb/<kb>/<doc>`` vs
-    ``local://<kb>/<doc>``）。字段名不一致的代价是：**取错名字不会报错，只会静默拿到
-    空标题 /「未知来源」**。现统一以 scout.py 的字段为准，三处共用本函数。
-
-    ``summary`` 截断到 500 字符、``snippet`` 到 200 —— 沿用 scout.py 的既有口径，
-    避免把整个 chunk（可能数千字）灌进 SSE 与去重比较。
+    字段口径与 DeepScout 一致：``title`` / ``site_name`` / ``is_local``，
+    url 前缀 ``local://kb/<kb>/<doc>``；``summary`` ≤500、``snippet`` ≤200。
     """
     formatted: List[Dict[str, Any]] = []
     for r in results:

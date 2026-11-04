@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 毒舌评论家 Agent (CriticMaster)
+DeepResearch - 毒舌评论家 Agent (CriticMaster)
 
 职责：
 1. 对抗式质检 - 永远不满意，找出问题

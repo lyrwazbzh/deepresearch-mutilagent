@@ -2,25 +2,17 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 生成式多智能体协作网络
+DeepResearch 多智能体研究主链。
 
-核心特点：
-1. 5个专家Agent协作：架构师、侦探、极客、评论家、笔杆
-2. 动态状态机：Plan -> Research -> Analyze -> Write -> Review -> Revise
-3. 对抗式质检：毒舌评论家确保报告质量
-4. 代码解释器：支持Python数据分析和可视化
-5. AsyncIO 状态机：支持并行执行、循环返工和条件分支
+六个专家 Agent（Architect / Scout / DataAnalyst / Wizard / Critic / Writer）共享
+ResearchState，由 AsyncIO 状态机调度：Plan → Research → Analyze → Write → Review，
+覆盖不足补搜，其余问题定向修订，默认最多 3 轮。
 
 使用方式：
 ```python
-from service.deep_research_v2 import DeepResearchService
+from service.deep_research.service import DeepResearchService
 
-service = DeepResearchService(
-    llm_api_key="your-api-key",
-    llm_base_url="https://api.example.com",
-    search_api_key="your-search-key"
-)
-
+service = DeepResearchService()
 async for event in service.research("中国AI芯片市场分析"):
     print(event)
 ```

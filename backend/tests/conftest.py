@@ -35,12 +35,12 @@ _register_namespace_package("core", APP_DIR / "core")
 _register_namespace_package("models", APP_DIR / "models")
 _register_namespace_package("router", APP_DIR / "router")
 _register_namespace_package(
-    "service.deep_research_v2",
-    APP_DIR / "service" / "deep_research_v2",
+    "service.deep_research",
+    APP_DIR / "service" / "deep_research",
 )
 _register_namespace_package(
-    "service.deep_research_v2.agents",
-    APP_DIR / "service" / "deep_research_v2" / "agents",
+    "service.deep_research.agents",
+    APP_DIR / "service" / "deep_research" / "agents",
 )
 
 
@@ -51,23 +51,18 @@ _register_namespace_package(
 # 取**顶层名字**，而占位包里没有这些名字，于是 router 测试在收集阶段直接 ImportError。
 #
 # 修法：把 router 实际用到的顶层名字，从对应的**轻量子模块**取出来挂到占位包上。
-# 代价接近 0（config / web_search_service / session_service / dr_g 约 0.01s，
+# 代价接近 0（config / web_search_service / session_service 约 0.01s，
 # document_service 约 1s、chat_service 约 1.7s），且不再要求测试拉起整条重型链。
 # 若后续 router 用到更多顶层名字，在此按同一方式追加即可。
 _service = sys.modules["service"]
 
-# 顶层名字 → 定义它的轻量子模块（对应 `service/__init__.py` 里的 `from .X import Y`）。
+# 顶层名字 → 定义它的轻量子模块（对应 `service/__init__.py` 里的懒加载导出）。
 _SERVICE_PUBLIC_NAMES = {
     "config": ("ServiceConfig",),
     "document_service": ("DocumentService",),
     "web_search_service": ("WebSearchService",),
     "chat_service": ("ChatService",),
     "session_service": ("SessionService",),
-    # T64：`router/research_router.py` 顶部 `from service import ResearchService, ServiceConfig`。
-    # `ResearchService` 定义在 V1 ReAct 路线模块 `service/dr_g.py`（§8 明令保留、不得删除）。
-    # 取的是**真实类**而非替身：dr_g 只依赖 stdlib + openai + requests + core.serialization，
-    # 脱离 `service/__init__.py` 单独导入实测 0.01s，比重型链便宜得多。
-    "dr_g": ("ResearchService",),
 }
 
 for _submodule, _exported_names in _SERVICE_PUBLIC_NAMES.items():
@@ -97,30 +92,30 @@ if "service.docmind_service" not in sys.modules:
     _service.docmind_service = _docmind_stub
 
 
-# --- T64：`service.deep_research_v2.service` 替身 ---------------------------------
-# `router/research_router.py` 在**模块级**导入 `service.deep_research_v2.service`。该模块本身
+# --- T64：`service.deep_research.service` 替身 ---------------------------------
+# `router/research_router.py` 在**模块级**导入 `service.deep_research.service`。该模块本身
 # 没问题，但它 `from .agents import ChiefArchitect` 取**包级属性**，而上面的占位包
-# （`service.deep_research_v2.agents`）**故意不执行 __init__**，因此这个真实模块在测试环境里
+# （`service.deep_research.agents`）**故意不执行 __init__**，因此这个真实模块在测试环境里
 # **本来就无法导入**（实测报 `cannot import name 'ChiefArchitect' from
-# 'service.deep_research_v2.agents'`）。
+# 'service.deep_research.agents'`）。
 #
 # 于是 T64 之前，鉴权的目录级全量回归锁根本覆盖不到 `research_router`（它是 12 个路由模块里
 # 唯一一个 import 不进来的，10 个端点因此无回归）。这里按 docmind 的同一取舍补一个替身：
 # 只提供 `research_router` 需要的类名，且**任何真实调用都抛 NotImplementedError**，
 # 以便「测试其实没走真服务」这件事在第一次真实调用时立刻暴露，而不是静默变绿。
 # ⚠️ 需要**真实** service 的测试必须自己回到真实模块 —— 按 conftest 既有做法先
-# `sys.modules.pop(...)` 再导入。`tests/service/deep_research_v2/test_service_observability.py`
+# `sys.modules.pop(...)` 再导入。`tests/service/deep_research/test_service_observability.py`
 # 就是这样做的（它要 monkeypatch 真实模块的 get_config，拿到替身会直接 AttributeError）。
-if "service.deep_research_v2.service" not in sys.modules:
-    _v2_service_stub = types.ModuleType("service.deep_research_v2.service")
+if "service.deep_research.service" not in sys.modules:
+    _research_service_stub = types.ModuleType("service.deep_research.service")
 
-    class DeepResearchV2Service:
+    class DeepResearchService:
         def __init__(self, *args, **kwargs):
             raise NotImplementedError(
-                "tests/conftest.py 注入了 service.deep_research_v2.service 替身；"
-                "本测试不应真正执行 V2 深度研究流程。如需真实行为请先移除该替身。"
+                "tests/conftest.py 注入了 service.deep_research.service 替身；"
+                "本测试不应真正执行深度研究流程。如需真实行为请先移除该替身。"
             )
 
-    _v2_service_stub.DeepResearchV2Service = DeepResearchV2Service
-    sys.modules["service.deep_research_v2.service"] = _v2_service_stub
-    sys.modules["service.deep_research_v2"].service = _v2_service_stub
+    _research_service_stub.DeepResearchService = DeepResearchService
+    sys.modules["service.deep_research.service"] = _research_service_stub
+    sys.modules["service.deep_research"].service = _research_service_stub

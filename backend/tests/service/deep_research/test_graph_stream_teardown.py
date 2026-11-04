@@ -22,7 +22,7 @@ import logging
 
 import pytest
 
-import service.deep_research_v2.agents as agents_package
+import service.deep_research.agents as agents_package
 
 
 # 兜底：真实 agent 类缺失时（精简环境）给 `agents` 包占位名，保证 graph 模块可导入。
@@ -39,8 +39,8 @@ for agent_name in (
         setattr(agents_package, agent_name, type(agent_name, (), {}))
 
 
-from service.deep_research_v2.agents.base import BaseAgent
-from service.deep_research_v2.graph import DeepResearchGraph
+from service.deep_research.agents.base import BaseAgent
+from service.deep_research.graph import DeepResearchGraph
 
 
 class NoQueueWarningRecorder(logging.Handler):

@@ -31,7 +31,7 @@ QLoRA、灰度工具路由均有真实源码。
 
 | 简历主张 | 状态 | 源码证据 | 缺口 / 风险 |
 |---|---|---|---|
-| 六个专家 Agent + 自研 AsyncIO 状态机 | 已实现 | `backend/app/service/deep_research_v2/graph.py` 初始化六角色并由 `_run_state_machine` 驱动；`state.py` 定义共享状态 | `run_agent_with_streaming` 会记录后吞掉 Agent 异常，后续阶段仍可能继续 |
+| 六个专家 Agent + 自研 AsyncIO 状态机 | 已实现 | `backend/app/service/deep_research/graph.py` 初始化六角色并由 `_run_state_machine` 驱动；`state.py` 定义共享状态 | `run_agent_with_streaming` 会记录后吞掉 Agent 异常，后续阶段仍可能继续 |
 | Web、知识库、数据库并行检索 | 已实现 | `agents/scout.py:1043-1154` 通过统一工具契约选择 Web/LocalRAG/Text2SQL；同一查询的多个调用由 `asyncio.gather` 并发执行 | 查询之间仍串行；补搜路径目前直接调用 Web Search，未复用多源路由 |
 | Milvus + BM25 / RRF | 已实现 | `retrieval/hybrid_retriever.py` 并发两路并支持单路降级；`retrieval/fusion.py` 执行加权 RRF | `docs/architecture.md` 仍错误声称 ES 未使用 |
 | 带引用研究报告 | 基本实现 | Writer prompt、事实与 references 会进入报告生成和最终 SSE | 没有报告生成后的“主张—引用—原文”一致性校验，当前只能保证带链接，不能保证每条引用真实支撑主张 |

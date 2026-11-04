@@ -1,4 +1,4 @@
-from service.deep_research_v2.state import ResearchPhase, create_initial_state
+from service.deep_research.state import ResearchPhase, create_initial_state
 
 
 def test_state_exposes_outline_approval_phase():

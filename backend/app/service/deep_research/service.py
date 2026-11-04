@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 服务入口
+DeepResearch - 服务入口
 
 提供与现有路由兼容的接口，支持 SSE 流式输出。
 """
@@ -39,12 +39,12 @@ except ImportError:
         from config.llm_config import get_config
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-logger = logging.getLogger("DeepResearchV2Service")
+logger = logging.getLogger("DeepResearchService")
 
 
-class DeepResearchV2Service:
+class DeepResearchService:
     """
-    DeepResearch V2.0 服务
+    DeepResearch 服务
 
     特点：
     - 多智能体协作
@@ -93,7 +93,7 @@ class DeepResearchV2Service:
             max_iterations=self.max_iterations
         )
 
-        logger.info(f"DeepResearch V2 Service initialized with default model: {self.model}")
+        logger.info(f"DeepResearch Service initialized with default model: {self.model}")
 
     async def research(
         self,
@@ -367,9 +367,9 @@ def create_service(
     llm_base_url: Optional[str] = None,
     search_api_key: Optional[str] = None,
     model: Optional[str] = None
-) -> DeepResearchV2Service:
+) -> DeepResearchService:
     """
-    工厂函数：创建 DeepResearch V2 服务
+    工厂函数：创建 DeepResearch 服务
 
     所有参数都是可选的，会从配置文件读取默认值
 
@@ -380,9 +380,9 @@ def create_service(
         model: 默认模型名称（可选）
 
     Returns:
-        DeepResearchV2Service 实例
+        DeepResearchService 实例
     """
-    return DeepResearchV2Service(
+    return DeepResearchService(
         llm_api_key=llm_api_key,
         llm_base_url=llm_base_url,
         search_api_key=search_api_key,

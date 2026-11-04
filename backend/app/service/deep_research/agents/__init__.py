@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - Agents 模块
+DeepResearch - Agents 模块
 
 导出所有专家Agent
 """

@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from service.deep_research_v2.agents.architect import ChiefArchitect
-from service.deep_research_v2.state import ResearchPhase, create_initial_state
+from service.deep_research.agents.architect import ChiefArchitect
+from service.deep_research.state import ResearchPhase, create_initial_state
 
 
 @pytest.fixture

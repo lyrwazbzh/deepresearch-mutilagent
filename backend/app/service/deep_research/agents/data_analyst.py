@@ -2,7 +2,7 @@
 # 未经授权，禁止转售或仿制。
 
 """
-DeepResearch V2.0 - 数据分析师 Agent (DataAnalyst)
+DeepResearch - 数据分析师 Agent (DataAnalyst)
 
 职责：
 1. 从搜索结果中提取结构化数据

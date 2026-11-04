@@ -139,8 +139,8 @@ LangFuse 服务栈使用独立端口，与业务服务栈完全隔离：
 | 位置 | 文件 | 作用 |
 |------|------|------|
 | LangFuse 客户端封装 | `backend/app/core/langfuse_client.py` | 单例客户端、trace/span/generation 上下文管理器、优雅降级 |
-| LLM 调用插桩 | `backend/app/service/deep_research_v2/agents/base.py` | `call_llm()` 方法用 `start_generation` 包裹，记录 prompt/response/token/usage |
-| Agent 链路串联 | `backend/app/service/deep_research_v2/graph.py` | `_run_simplified()` 方法用 `start_trace` 包裹整个流程，每个 phase 用 `start_span` 包裹 |
+| LLM 调用插桩 | `backend/app/service/deep_research/agents/base.py` | `call_llm()` 方法用 `start_generation` 包裹，记录 prompt/response/token/usage |
+| Agent 链路串联 | `backend/app/service/deep_research/graph.py` | `_run_simplified()` 方法用 `start_trace` 包裹整个流程，每个 phase 用 `start_span` 包裹 |
 | 模型价格配置 | `backend/app/scripts/config_langfuse_models.py` | 批量配置模型价格的脚本 |
 
 ### 优雅降级

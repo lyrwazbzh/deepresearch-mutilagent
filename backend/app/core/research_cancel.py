@@ -5,7 +5,7 @@
 
 归属理由与 `core/serialization.py`（T15）同型：取消协议此前归 `research_router`
 所有，于是**服务层必须反向 import router** 才能用它
-（`service/deep_research_v2/graph.py`）—— 一个 HTTP 层模块成了业务流水线的基础设施，
+（`service/deep_research/graph.py`）—— 一个 HTTP 层模块成了业务流水线的基础设施，
 两模块之间还构成了循环依赖。本模块与两侧都无关：router 与 service 都只依赖它。
 
 **本模块刻意没有 ImportError 兜底**。迁出前 `graph.py` 的写法是

@@ -11,9 +11,8 @@
 并在缺名时逐个人工补桩 —— 这是 ``core/security_headers.py`` 里明确写下的设计取舍
 （「其中的策略无法在无基础设施的测试里验证」）。
 
-在同一个 pytest 会话里导入 ``app_main`` 会一路踩坑：占位包缺名（ResearchService →
-deep_research_v2 重链 → models 顶层类）、以及**重复导入 models 触发
-``Table '...' is already defined``**。改用**子进程**则每次都是干净解释器：
+在同一个 pytest 会话里导入 ``app_main`` 会踩占位包缺口与 models 重复注册
+（``Table '...' is already defined``）。改用**子进程**则每次都是干净解释器：
 真实模块按真实顺序导入、没有会话残留，既不需要往本文件堆一长串桩，也不会污染其它测试。
 
 代价：导入 ``app_main`` 实测约 16–18s（冷启动曾见 30s），本文件是全仓最重的一个测试（相对全量 ~25s 是明显增量）。

@@ -2,8 +2,8 @@
 
 ## Architecture
 
-- `backend/` is the online FastAPI application. DeepResearch V2 has one execution runtime:
-  `service/deep_research_v2/graph.py::_run_state_machine`.
+- `backend/` is the online FastAPI application. DeepResearch has one execution runtime:
+  `service/deep_research/graph.py::_run_state_machine`.
 - `training/` owns synthesis, dataset construction, QLoRA, offline evaluation, packaging and
   the internal `/v1/tool-routing` service.
 - `contracts/deepresearch_tools.v1.json` is the canonical tool schema. After changing it,

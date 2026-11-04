@@ -7,8 +7,8 @@ from config.llm_config import get_config
 
 # 真 LLM 评测：依赖外部 LLM 服务与有效 API key，默认跳过（T27 needs_infra）
 pytestmark = pytest.mark.needs_infra
-from service.deep_research_v2.agents.architect import ChiefArchitect
-from service.deep_research_v2.state import (
+from service.deep_research.agents.architect import ChiefArchitect
+from service.deep_research.state import (
     ResearchPhase,
     create_initial_state,
 )
